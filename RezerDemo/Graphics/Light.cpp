@@ -20,9 +20,9 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	}
 	case LightType::SPOT:
 	{
-		light.range = 1000.0f;
+		light.range = 10.0f;
 		light.cone = 20.0f;
-		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.0f);
+		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.01f);
 		light.lightType = 1;
 		break;
 	}

@@ -10,7 +10,7 @@ struct PS_OUTPUT
 {
     float4 out_pos : SV_Target0;
     float4 out_normal : SV_Target1;
-    float4 out_color : SV_Target2;
+    float4 out_diffuse : SV_Target2;
     float4 out_world_pos : SV_Target2;
 };
 
@@ -29,10 +29,13 @@ PS_OUTPUT main(PS_INPUT input) : SV_Target
     output.out_normal = float4(input.in_normal, 0.0f);
     
     //Store color in RTV 3
-    output.out_color = objTexture.Sample(objSamplerState, input.in_uv);
+    output.out_diffuse = objTexture.Sample(objSamplerState, input.in_uv);
     
     //Store world pos in RTV 4
     output.out_world_pos = input.in_world_pos;
+    
+    //Store specular comå in RTV 5
+    
  
     return output;
 

@@ -19,7 +19,7 @@ cbuffer LightMatirx : register(b0)
 cbuffer MaterialBuffer : register(b1)
 {
     float4 ambient;
-    float4 diffuse;
+    float4 lightDiffuse;
     float3 specularColor;
     float specularPower;
 };
@@ -38,7 +38,7 @@ StructuredBuffer<LightBuffer> buffer : register(t0);
 //SRV
 Texture2D<float4> clipPositions : register(t1);
 Texture2D<float4> normals : register(t2);
-Texture2D<float4> colors : register(t3);
+Texture2D<float4> diffuse : register(t3);
 Texture2D<float4> worldPos : register(t4);
 
 //UAV
@@ -55,7 +55,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
 {
     float3 finalColor = float3(0.0f, 0.0f, 0.0f);
     
-    float3 finalAmbient = ambient * colors[DTid.xy];
+    float3 finalAmbient = ambient * diffuse[DTid.xy];
         
     for (uint i = 0; i < 1; i++)
     {
@@ -70,7 +70,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
             lightToPixelVec = buffer[i].lightDir;
             lightToPixelVec = normalize(-lightToPixelVec);
             
-            finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * diffuse * colors[DTid.xy]);
+            finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * lightDiffuse * diffuse[DTid.xy]);
     
             //Specular
             reflection = normalize(reflect(lightToPixelVec, normals[DTid.xy].xyz));
@@ -83,12 +83,27 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
         else if (buffer[i].lightType == 1) //Spotlight
         {
+            
+             
             if (distance > buffer[i].lightRange)
-                continue;
+            continue;
             
-            float lightPower = dot(-lightToPixelVec, normals[DTid.xy].xyz);
+            lightToPixelVec = normalize(lightToPixelVec);
             
-            if (lightPower < 0.0f)
+            float3 normalLightDir = normalize(buffer[i].lightDir);
+            
+            float lightDiffuse = max(dot(-lightToPixelVec, normals[DTid.xy].xyz), 0);
+            
+            float scalar = dot(lightToPixelVec, normalLightDir);
+
+            float coneCufOff = 0;
+            
+            if(scalar >= 0.9)
+            {
+                coneCufOff = 1;
+            }
+            
+            if (lightDiffuse < 0.0f)
                 continue;
             
             //Specular
@@ -97,11 +112,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
             float3 viewVector = cameraPos - worldPos[DTid.xy].xyz;
             viewVector = normalize(viewVector);
         
-            specularIntensity = float4(specularColor, 1.0f) * pow(saturate(dot(reflection, viewVector)), specularPower);
+            specularIntensity = float4(specularColor, 1.0f) * pow(max(dot(reflection, viewVector), 0.0f), specularPower) * coneCufOff;
             
-            lightToPixelVec /= distance;
+            //Spotlight
+            lightToPixelVec = normalize(lightToPixelVec);
             
-            finalColor += colors[DTid.xy] * diffuse;
+            finalColor += diffuse[DTid.xy] * lightDiffuse * lightDiffuse * coneCufOff;
                       
             finalColor /= buffer[i].lightAtt[0] + buffer[i].lightAtt[1] * distance + buffer[i].lightAtt[2] * distance * distance;       
             finalColor *= pow(max(dot(lightToPixelVec, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
