@@ -446,7 +446,6 @@ void Graphics::lightPass()
 
 	//Set constant buffers
 	this->light.update(this->camera);
-	//this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getLightConstantBuffer().getBuffer());
 	this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
 
 	//Material
@@ -493,7 +492,6 @@ bool Graphics::init(Window& window)
 	this->mvpConstantBuffer.createBuffer(sizeof(mvpBufferStruct), sizeof(mvpBuffer), &mvpBufferStruct);
 
 	//Light
-	this->light.setPosition(DirectX::SimpleMath::Vector3(0.0f, 0.0f, -2.0f));
 	this->light.init();
 
 	//Light material

@@ -35,15 +35,13 @@ private:
 		float cone;
 		DirectX::XMFLOAT4 color;
 		DirectX::XMFLOAT3 att;
-		int lightType;
+		unsigned int lightType;
 	} lightBufferStruct{};
 
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 
 	VertexShader shadowMap_VS;
-
-	LightType type;
 
 	//Shadow map stuff
 	D3D11_VIEWPORT shadowMapVP;
@@ -54,16 +52,11 @@ private:
 	unsigned int shadowMapSize;
 	
 	//Light stuff
-	DirectX::SimpleMath::Vector3 position;
-	DirectX::SimpleMath::Vector4 color;
-	DirectX::SimpleMath::Vector3 direction;
-
 	std::vector<LightStruct> lights;
 
 	Graphics& graphic;
 
 	//Constant buffers
-	ConstantBuffer lightConstantBuffer;
 	ConstantBuffer shadowMapMVPBuffer;
 
 	//Structure buffer
@@ -84,23 +77,14 @@ public:
 	void renderShadowMap(std::vector<Mesh*>& meshes);
 	bool update(Camera& camera);
 
-	void setPosition(DirectX::SimpleMath::Vector3 pos);
-	void setColor(float r, float g, float b, float a);
-	void setDirection(DirectX::SimpleMath::Vector3 dir);
-
 	inline ID3D11Texture2D*& getShadowMapTexture() { return this->shadowMapDepthTexture; }
 	inline ID3D11DepthStencilView*& getShadowMapDSV() { return this->shadowMapDSV; }
 	inline ID3D11ShaderResourceView*& getShadowMapSRV() { return this->shadowMapSRV; }
-
-	inline DirectX::SimpleMath::Vector3& getPosition() { return this->position; }
-	inline DirectX::SimpleMath::Vector3& getDirection() { return this->direction; }
-	inline DirectX::SimpleMath::Vector4& getColor() { return this->color; }
 
 	inline DirectX::SimpleMath::Matrix& getViewMatrix() { return this->viewMatrix; }
 	inline DirectX::SimpleMath::Matrix& getProjectionMatrix() { return this->projectionMatrix; }
 	inline D3D11_VIEWPORT& getShadowMapVP() { return this->shadowMapVP; }
 
-	inline ConstantBuffer& getLightConstantBuffer() { return this->lightConstantBuffer; }
 	inline ConstantBuffer& getShadowMapMVPConstnantBuffer() { return this->shadowMapMVPBuffer; }
 	inline ID3D11Buffer*& getStructureBuffer() { return this->strucutreBuffer; }
 	inline ID3D11ShaderResourceView*& getStructureSRV() { return this->structreSRV; }

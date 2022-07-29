@@ -103,7 +103,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
         finalColor = saturate(finalColor + specularIntensity.xyz);
     }
     
-    //output[DTid.xy] = float4(finalColor, 1.0f);
-    output[DTid.xy] = float4(buffer[0].lightType,0.0f, 0.0f, 1.0f);
+    output[DTid.xy] = float4(finalColor, 1.0f);
+    //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
 
 }

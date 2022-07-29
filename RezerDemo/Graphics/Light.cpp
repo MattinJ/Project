@@ -36,7 +36,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
+	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
 	
 	return false;
 }
@@ -48,7 +48,7 @@ bool Light::initBuffer()
 
 	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.ByteWidth = this->bufferSize;
-	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+	bufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	bufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	bufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
@@ -86,8 +86,7 @@ bool Light::initBuffer()
 }
 
 Light::Light(Graphics& graphic, LightType type)
-	:graphic(graphic), position(0.0f, 0.0f, -1.0f), color(1.0f, 1.0f, 1.0f, 1.0f), direction(0.0f, 0.0f, 0.0f), type(type),
-	lightConstantBuffer(graphic, "Light CB"), shadowMapMVPBuffer(graphic, "Shadow map CB"), bufferSize(0),
+	:graphic(graphic), shadowMapMVPBuffer(graphic, "Shadow map CB"), bufferSize(0),
 	shadowMapDepthTexture(nullptr), shadowMapDSV(nullptr), shadowMapSize(512), shadowMapSRV(nullptr), shadowMap_VS(graphic)
 
 {
@@ -192,7 +191,6 @@ bool Light::init()
 	);
 
 	//Create Constantbuffers
-	this->lightConstantBuffer.createBuffer(sizeof(lightBufferStruct), sizeof(LightStruct), &lightBufferStruct);
 	this->shadowMapMVPBuffer.createBuffer(sizeof(lightBufferMVP), sizeof(LightBufferVP), &lightBufferMVP);
 
 	return true;
@@ -200,77 +198,80 @@ bool Light::init()
 
 void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 {
-	//Update view matrix
-	this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->position, DirectX::SimpleMath::Vector3(0.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
-
-	//Make vpMatrix
-	DirectX::SimpleMath::Matrix vpMatrix = this->viewMatrix * this->projectionMatrix;
-	
-	//Clear depth texture
-	this->graphic.getDeviceContext()->ClearDepthStencilView(this->shadowMapDSV, D3D11_CLEAR_DEPTH, 1, 0);
-
-	ID3D11RenderTargetView* nullRTV = nullptr;
-	this->graphic.getDeviceContext()->OMSetRenderTargets(1, &nullRTV, this->shadowMapDSV);
-
-	//Set view port
-	this->graphic.getDeviceContext()->RSSetViewports(1, &this->shadowMapVP);
-
-	//Set Input and vertex shader
-	this->graphic.getDeviceContext()->IASetInputLayout(this->shadowMap_VS.getInputLayout());
-	this->graphic.getDeviceContext()->VSSetShader(this->shadowMap_VS.getVS(), nullptr, 0);
-
-	//Set pixel shader as null
-	this->graphic.getDeviceContext()->PSSetShader(nullptr, nullptr, 0);
-
-	//Set renderer target as null and add shadow DSV
-	
-	//Set mvp buffer
-	this->graphic.getDeviceContext()->VSSetConstantBuffers(0, 1, &this->shadowMapMVPBuffer.getBuffer());
-
-	//Set null to sampler and texture
-	//ID3D11SamplerState* nullSampler[]{ nullptr };
-	ID3D11ShaderResourceView* nullSRV[]{ nullptr };
-
-	//this->graphic.getDeviceContext()->PSSetSamplers(0, 1, nullSampler);
-	this->graphic.getDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
-
-	//Go over all meshes
-
-	for (size_t i = 0; i < meshes.size(); i++)
+	for (size_t i = 0; i < this->lights.size(); i++)
 	{
-		DirectX::SimpleMath::Matrix m = meshes[i]->getWorldMatrix();
-		this->lightBufferMVP.worldMatrix = m.Transpose();
-		this->lightBufferMVP.vpMatrix = vpMatrix.Transpose();
+		//Update view matrix
+		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->lights[i].position, DirectX::SimpleMath::Vector3(0.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
 
-		this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
+		//Make vpMatrix
+		DirectX::SimpleMath::Matrix vpMatrix = this->viewMatrix * this->projectionMatrix;
 
-		//Set vertex buffer
-		this->graphic.getDeviceContext()->IASetVertexBuffers(0, 1,
-			&meshes[i]->getVertexBuffer().getBuffer(),
-			&meshes[i]->getVertexBuffer().getStride(),
-			&meshes[i]->getVertexBuffer().getOffset()
-		);
+		//Clear depth texture
+		this->graphic.getDeviceContext()->ClearDepthStencilView(this->shadowMapDSV, D3D11_CLEAR_DEPTH, 1, 0);
 
-		//Set index buffer
-		this->graphic.getDeviceContext()->IASetIndexBuffer(
-			meshes[i]->getIndexBuffer().getBuffer(),
-			DXGI_FORMAT_R32_UINT, 0
-		);
+		ID3D11RenderTargetView* nullRTV = nullptr;
+		this->graphic.getDeviceContext()->OMSetRenderTargets(1, &nullRTV, this->shadowMapDSV);
 
-		//Draw
-		this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
+		//Set view port
+		this->graphic.getDeviceContext()->RSSetViewports(1, &this->shadowMapVP);
+
+		//Set Input and vertex shader
+		this->graphic.getDeviceContext()->IASetInputLayout(this->shadowMap_VS.getInputLayout());
+		this->graphic.getDeviceContext()->VSSetShader(this->shadowMap_VS.getVS(), nullptr, 0);
+
+		//Set pixel shader as null
+		this->graphic.getDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+
+		//Set renderer target as null and add shadow DSV
+
+		//Set mvp buffer
+		this->graphic.getDeviceContext()->VSSetConstantBuffers(0, 1, &this->shadowMapMVPBuffer.getBuffer());
+
+		//Set null to sampler and texture
+		//ID3D11SamplerState* nullSampler[]{ nullptr };
+		ID3D11ShaderResourceView* nullSRV[]{ nullptr };
+
+		//this->graphic.getDeviceContext()->PSSetSamplers(0, 1, nullSampler);
+		this->graphic.getDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
+
+		//Go over all meshes
+
+		for (size_t i = 0; i < meshes.size(); i++)
+		{
+			DirectX::SimpleMath::Matrix m = meshes[i]->getWorldMatrix();
+			this->lightBufferMVP.worldMatrix = m.Transpose();
+			this->lightBufferMVP.vpMatrix = vpMatrix.Transpose();
+
+			this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
+
+			//Set vertex buffer
+			this->graphic.getDeviceContext()->IASetVertexBuffers(0, 1,
+				&meshes[i]->getVertexBuffer().getBuffer(),
+				&meshes[i]->getVertexBuffer().getStride(),
+				&meshes[i]->getVertexBuffer().getOffset()
+			);
+
+			//Set index buffer
+			this->graphic.getDeviceContext()->IASetIndexBuffer(
+				meshes[i]->getIndexBuffer().getBuffer(),
+				DXGI_FORMAT_R32_UINT, 0
+			);
+
+			//Draw
+			this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
+		}
 	}
+	
+	
 }
 
 bool Light::update(Camera& camera)
 {
-	//Constantbuffers
-	this->lightConstantBuffer.updateBuffer(&lightBufferStruct);
-
 	this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
 	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
 
-	//Structure buffer
+	////Struct
+	//lightBufferStruct.lightType = 1;
 	//D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
 	//HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);
 
@@ -289,25 +290,3 @@ bool Light::update(Camera& camera)
 
 }
 
-void Light::setPosition(DirectX::SimpleMath::Vector3 pos)
-{
-	this->position = pos;
-	this->lightBufferStruct.position = this->position;
-}
-
-void Light::setColor(float r, float g, float b, float a)
-{
-	this->color.x = r;
-	this->color.y = g;
-	this->color.z = b;
-	this->color.w = a;
-
-	this->lightBufferStruct.color = this->color;
-
-}
-
-void Light::setDirection(DirectX::SimpleMath::Vector3 dir)
-{
-	this->direction = dir;
-	this->lightBufferStruct.direction = this->direction;
-}
