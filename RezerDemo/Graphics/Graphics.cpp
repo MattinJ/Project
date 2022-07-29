@@ -439,13 +439,13 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->uavBackBuffer, nullptr);
 
 	//Bind structure buffer
+	this->light.update(this->camera);
 	this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
 
 	//Set SRV
 	this->immediateContext->CSSetShaderResources(1, (UINT)BUFFER_COUNT, this->srvArray);
 
 	//Set constant buffers
-	this->light.update(this->camera);
 	this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
 
 	//Material

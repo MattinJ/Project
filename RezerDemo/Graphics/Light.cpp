@@ -9,7 +9,8 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	light.position = pos;
 	light.direction = dir;
 	light.color = DirectX::SimpleMath::Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-	
+	light.lightType = 1;
+
 	switch (type)
 	{
 	case LightType::DIRECTIONAL:
@@ -36,7 +37,8 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
+	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f));
 	
 	return false;
 }
@@ -270,21 +272,26 @@ bool Light::update(Camera& camera)
 	this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
 	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
 
-	////Struct
-	//lightBufferStruct.lightType = 1;
-	//D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
-	//HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);
+	this->lights[0].position = camera.getPostion();
 
-	//if (FAILED(hr))
-	//{
-	//	ErrorLogger::errorMessage("Failed to MAP structure buffer!");
-	//	return false;
-	//}
+	DirectX::SimpleMath::Vector3 test;
 
-	//memcpy(mappedSubResoruce.pData, this->strucutreBuffer, this->bufferSize);
+	this->lights[0].direction = camera.getPostion() - this->lights[0].direction;
 
-	////Unmap
-	//this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);
+	//Map
+	D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
+	HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);
+
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to MAP structure buffer!");
+		return false;
+	}
+
+	memcpy(mappedSubResoruce.pData, this->lights.data(), this->bufferSize);
+
+	//Unmap
+	this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);
 
 	return true;
 

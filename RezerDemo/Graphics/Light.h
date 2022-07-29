@@ -35,8 +35,8 @@ private:
 		float cone;
 		DirectX::XMFLOAT4 color;
 		DirectX::XMFLOAT3 att;
-		unsigned int lightType;
-	} lightBufferStruct{};
+		int lightType;
+	};
 
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;

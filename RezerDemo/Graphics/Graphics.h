@@ -24,17 +24,6 @@ const int BUFFER_COUNT = 4;
 class Graphics
 {
 private:
-	struct LightStruct
-	{
-		DirectX::XMFLOAT3 position;
-		float range;
-		DirectX::XMFLOAT3 direction;
-		float cone;
-		DirectX::XMFLOAT4 color;
-		DirectX::XMFLOAT3 att;
-		int lightType;
-	} lightBufferStruct{};
-	
 	struct mvpBuffer
 	{
 		DirectX::XMFLOAT4X4 worldMatrix;
@@ -83,10 +72,6 @@ private:
 
 	//Buffers
 	ID3D11Buffer* default_VS_Buffer = nullptr;
-
-	//Texture
-	/*Texture defaultTexture;
-	Texture grassTexture;*/
 
 	//Light
 	Light light;

@@ -7,7 +7,7 @@ struct LightBuffer
     float lightCone;
     float4 lightColor;
     float3 lightAtt;
-    float lightType;
+    int lightType;
 };
 
 cbuffer LightMatirx : register(b0)
@@ -59,10 +59,11 @@ void main(uint3 DTid : SV_DispatchThreadID)
         
     for (uint i = 0; i < 1; i++)
     {
-        float3 lightVector = worldPos[DTid.xy].xyz - buffer[i].lightPos;
-        float distance = length(lightVector);
-        lightVector = normalize(lightVector);
-    
+        float3 lightToPixelVec = worldPos[DTid.xy].xyz - buffer[i].lightPos;
+        float distance = length(lightToPixelVec);
+        
+        float3 finalAmbient = diffuse * ambient;
+        
         float3 reflection = float3(0.0f, 0.0f, 0.0f);
         float4 specularIntensity = float4(0.0f, 0.0f, 0.0f, 0.0f);
         
@@ -90,20 +91,23 @@ void main(uint3 DTid : SV_DispatchThreadID)
             float lightPower = dot(lightVector, normals[DTid.xy].xyz);
             
             if (lightPower < 0.0f)
-                continue;
+               continue;
            
+            float3 lightDir = -normalize(buffer[i].lightDir);
+            float3 diff = colors[DTid.xy] * diffuse * max(dot(normals[DTid.xy], lightVector), 0.0f)
+            
             finalColor = colors[DTid.xy] * ambient;                      
             finalColor /= buffer[i].lightAtt[0] + buffer[i].lightAtt[1] * distance + buffer[i].lightAtt[2] * distance * distance;       
-            finalColor *= pow(max(dot(-lightVector, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
-            
-            finalColor = float3(1.0f, 0.0f, 0.0f);
-            
+            finalColor *= pow(max(dot(lightVector, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
+           
         }
     
         finalColor = saturate(finalColor + specularIntensity.xyz);
     }
     
     output[DTid.xy] = float4(finalColor, 1.0f);
+    //output[DTid.xy] = float4(finalColor, 1.0f) * float4(buffer[0].lightPos, 1.0f);
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
+    //output[DTid.xy] = float4(buffer[0].lightPos, 1.0f);
 
 }
