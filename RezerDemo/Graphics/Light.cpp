@@ -38,7 +38,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 bool Light::initLights()
 {
 	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f));
 	
 	return false;
 }
@@ -276,7 +276,7 @@ bool Light::update(Camera& camera)
 
 	DirectX::SimpleMath::Vector3 test;
 
-	this->lights[0].direction = camera.getPostion() - this->lights[0].direction;
+	this->lights[0].direction = camera.getTarget() - this->lights[0].position;
 
 	//Map
 	D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;

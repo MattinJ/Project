@@ -55,27 +55,25 @@ void main(uint3 DTid : SV_DispatchThreadID)
 {
     float3 finalColor = float3(0.0f, 0.0f, 0.0f);
     
-    finalColor = colors[DTid.xy] * ambient;
+    float3 finalAmbient = ambient * colors[DTid.xy];
         
     for (uint i = 0; i < 1; i++)
     {
         float3 lightToPixelVec = worldPos[DTid.xy].xyz - buffer[i].lightPos;
         float distance = length(lightToPixelVec);
         
-        float3 finalAmbient = diffuse * ambient;
-        
         float3 reflection = float3(0.0f, 0.0f, 0.0f);
         float4 specularIntensity = float4(0.0f, 0.0f, 0.0f, 0.0f);
         
         if (buffer[i].lightType == 0) //Directional
         {
-            //lightVector = buffer[i].lightDir;
-            //lightVector = normalize(-lightVector);
+            lightToPixelVec = buffer[i].lightDir;
+            lightToPixelVec = normalize(-lightToPixelVec);
             
             finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * diffuse * colors[DTid.xy]);
     
             //Specular
-            reflection = normalize(reflect(lightVector, normals[DTid.xy].xyz));
+            reflection = normalize(reflect(lightToPixelVec, normals[DTid.xy].xyz));
        
             float3 viewVector = cameraPos - worldPos[DTid.xy].xyz;
             viewVector = normalize(viewVector);
@@ -87,22 +85,30 @@ void main(uint3 DTid : SV_DispatchThreadID)
         {
             if (distance > buffer[i].lightRange)
                 continue;
-         
-            float lightPower = dot(lightVector, normals[DTid.xy].xyz);
+            
+            float lightPower = dot(-lightToPixelVec, normals[DTid.xy].xyz);
             
             if (lightPower < 0.0f)
-               continue;
-           
-            float3 lightDir = -normalize(buffer[i].lightDir);
-            float3 diff = colors[DTid.xy] * diffuse * max(dot(normals[DTid.xy], lightVector), 0.0f)
+                continue;
             
-            finalColor = colors[DTid.xy] * ambient;                      
+            //Specular
+            reflection = normalize(reflect(lightToPixelVec, normals[DTid.xy].xyz));
+       
+            float3 viewVector = cameraPos - worldPos[DTid.xy].xyz;
+            viewVector = normalize(viewVector);
+        
+            specularIntensity = float4(specularColor, 1.0f) * pow(saturate(dot(reflection, viewVector)), specularPower);
+            
+            lightToPixelVec /= distance;
+            
+            finalColor += colors[DTid.xy] * diffuse;
+                      
             finalColor /= buffer[i].lightAtt[0] + buffer[i].lightAtt[1] * distance + buffer[i].lightAtt[2] * distance * distance;       
-            finalColor *= pow(max(dot(lightVector, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
-           
+            finalColor *= pow(max(dot(lightToPixelVec, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
+            
         }
     
-        finalColor = saturate(finalColor + specularIntensity.xyz);
+        finalColor = saturate(finalColor + finalAmbient + specularIntensity.xyz );
     }
     
     output[DTid.xy] = float4(finalColor, 1.0f);
