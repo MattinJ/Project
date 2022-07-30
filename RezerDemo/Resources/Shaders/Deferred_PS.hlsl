@@ -12,10 +12,15 @@ struct PS_OUTPUT
     float4 out_normal : SV_Target1;
     float4 out_diffuse : SV_Target2;
     float4 out_world_pos : SV_Target2;
+    float4 out_ambient : SV_Target3;
+    float4 out_specular : SV_Target4;
 };
 
-Texture2D objTexture : register(t0); //Our data from texture.
 SamplerState objSamplerState : register(s0); //Our sampler from sampler state
+
+Texture2D objTexture : register(t0); //Our data from texture.
+Texture2D ambientTexture : register(t1);
+Texture2D specularTexture : register(t2);
 
 PS_OUTPUT main(PS_INPUT input) : SV_Target
 {
@@ -34,8 +39,12 @@ PS_OUTPUT main(PS_INPUT input) : SV_Target
     //Store world pos in RTV 4
     output.out_world_pos = input.in_world_pos;
     
-    //Store specular comå in RTV 5
+    //Store ambient comp in RTV 5
+    output.out_ambient = ambientTexture.Sample(objSamplerState, input.in_uv);
     
+    //Store specular comp in RTV 6
+    output.out_specular = specularTexture.Sample(objSamplerState, input.in_uv);
+    output.out_specular.w = 32.0f; //test
  
     return output;
 

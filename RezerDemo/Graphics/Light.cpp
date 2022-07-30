@@ -37,7 +37,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
+	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
 	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f));
 	
 	return false;
@@ -272,12 +272,15 @@ bool Light::update(Camera& camera)
 	this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
 	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
 
-	this->lights[0].position = camera.getPostion();
-
-	DirectX::SimpleMath::Vector3 test;
-
-	this->lights[0].direction = camera.getTarget() - this->lights[0].position;
-
+	for (size_t i = 0; i < this->lights.size(); i++)
+	{
+		if (this->lights[i].lightType == 1)
+		{
+			this->lights[0].position = camera.getPostion();
+			this->lights[0].direction = camera.getTarget() - this->lights[0].position;
+		}
+	}
+	
 	//Map
 	D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
 	HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);

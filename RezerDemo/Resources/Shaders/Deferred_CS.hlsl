@@ -5,7 +5,7 @@ struct LightBuffer
     float lightRange;
     float3 lightDir;
     float lightCone;
-    float4 lightColor;
+    float4 lightDiffuse;
     float3 lightAtt;
     int lightType;
 };
@@ -18,10 +18,10 @@ cbuffer LightMatirx : register(b0)
 
 cbuffer MaterialBuffer : register(b1)
 {
-    float4 ambient;
-    float4 lightDiffuse;
-    float3 specularColor;
-    float specularPower;
+    float4 test1;
+    float4 test2;
+    float3 test3;
+    float test4;
 };
 
 cbuffer camera : register(b2)
@@ -40,6 +40,8 @@ Texture2D<float4> clipPositions : register(t1);
 Texture2D<float4> normals : register(t2);
 Texture2D<float4> diffuse : register(t3);
 Texture2D<float4> worldPos : register(t4);
+Texture2D<float4> ambient : register(t5);
+Texture2D<float4> specular : register(t6);
 
 //UAV
 RWTexture2D<unorm float4> output : register(u0);
@@ -49,13 +51,13 @@ RWTexture2D<unorm float4> output : register(u0);
 #define size_y 32
 #define size_z 1
 #define shadow_bias 0.001f;
-    
+  
 [numthreads(size_x, size_y, size_z)]
 void main(uint3 DTid : SV_DispatchThreadID)
 {
     float3 finalColor = float3(0.0f, 0.0f, 0.0f);
     
-    float3 finalAmbient = ambient * diffuse[DTid.xy];
+    float3 finalAmbient = ambient[DTid.xy] * diffuse[DTid.xy];
         
     for (uint i = 0; i < 1; i++)
     {
@@ -67,10 +69,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
         
         if (buffer[i].lightType == 0) //Directional
         {
-            lightToPixelVec = buffer[i].lightDir;
-            lightToPixelVec = normalize(-lightToPixelVec);
+            //lightToPixelVec = buffer[i].lightDir;
+            //lightToPixelVec = normalize(-lightToPixelVec);
             
-            finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * lightDiffuse * diffuse[DTid.xy]);
+            finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * buffer[i].lightDiffuse * diffuse[DTid.xy]);
     
             //Specular
             reflection = normalize(reflect(lightToPixelVec, normals[DTid.xy].xyz));
@@ -78,7 +80,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
             float3 viewVector = cameraPos - worldPos[DTid.xy].xyz;
             viewVector = normalize(viewVector);
         
-            specularIntensity = float4(specularColor, 1.0f) * pow(saturate(dot(reflection, viewVector)), specularPower);
+            specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewVector)), specular[DTid.xy].w);
             
         }
         else if (buffer[i].lightType == 1) //Spotlight
@@ -112,7 +114,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
             float3 viewVector = cameraPos - worldPos[DTid.xy].xyz;
             viewVector = normalize(viewVector);
         
-            specularIntensity = float4(specularColor, 1.0f) * pow(max(dot(reflection, viewVector), 0.0f), specularPower) * coneCufOff;
+            specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(max(dot(reflection, viewVector), 0.0f), specular[DTid.xy].w) * coneCufOff;
             
             //Spotlight
             lightToPixelVec = normalize(lightToPixelVec);
@@ -128,7 +130,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     output[DTid.xy] = float4(finalColor, 1.0f);
-    //output[DTid.xy] = float4(finalColor, 1.0f) * float4(buffer[0].lightPos, 1.0f);
+    //output[DTid.xy] = specular[DTid.xy];
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[0].lightPos, 1.0f);
 

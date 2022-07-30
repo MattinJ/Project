@@ -56,6 +56,12 @@ void Camera::move()
 	{
 		this->camYaw += Input::getCursorDeltaX() * this->sens;
 		this->camPitch += Input::getCursorDeltaY() * this->sens;
+
+		//Snap camera
+		if (this->camPitch > 0.9)
+			this->camPitch = 0.9;
+		else if (this->camPitch < -0.9)
+			this->camPitch = -0.9;
 	}
 	
 	this->updateCamera();

@@ -19,7 +19,7 @@
 
 #include "../Application/Window.h"
 
-const int BUFFER_COUNT = 4;
+const int BUFFER_COUNT = 6;
 
 class Graphics
 {
@@ -76,7 +76,10 @@ private:
 	//Light
 	Light light;
 	ID3D11Buffer* cbMaterial = nullptr;
-
+	
+	Texture ambientTexture;
+	Texture specularTexture;
+	
 	//Camera
 	Camera camera;
 	ConstantBuffer cameraPos;

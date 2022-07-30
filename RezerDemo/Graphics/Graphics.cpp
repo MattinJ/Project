@@ -196,7 +196,7 @@ Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0)
+	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -410,9 +410,11 @@ void Graphics::renderMesh(Mesh& mesh)
 	//Set vertex shader CB
 	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 
-	//Set Sampler
+	//Set Sampler and textures
 	this->immediateContext->PSSetSamplers(0, 1, &mesh.getTexture().getSamplerState());
 	this->immediateContext->PSSetShaderResources(0, 1, &mesh.getTexture().getSRV());
+	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
+	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
 
 	//Draw
 	this->immediateContext->DrawIndexed(
@@ -479,7 +481,11 @@ bool Graphics::init(Window& window)
 	this->defferdInit();
 
 	this->loadShaders();
-	
+
+	//Textures
+	this->specularTexture.loadTexture("specular.png");
+	this->ambientTexture.loadTexture("ambient.png");
+
 	//view port
 	this->viewPort.TopLeftX = 0.0f;
 	this->viewPort.TopLeftY = 0.0f;
@@ -496,7 +502,6 @@ bool Graphics::init(Window& window)
 
 	//Light material
 	this->materialBufferStruct.ambient = DirectX::XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	this->materialBufferStruct.diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	this->materialBufferStruct.specular = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
 	this->materialBufferStruct.specularPower = 32.0f;
 
