@@ -444,8 +444,14 @@ void Graphics::lightPass()
 	this->light.update(this->camera);
 	this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
 
-	//Set SRV
-	this->immediateContext->CSSetShaderResources(1, (UINT)BUFFER_COUNT, this->srvArray);
+	//Shadow map
+	this->immediateContext->CSSetShaderResources(1, 1, &this->light.getShadowMapSRV());
+
+	//Bind shadow map sampler
+	this->immediateContext->CSSetSamplers(0, 1, &this->light.getSampler());
+
+	//Set gBuffers
+	this->immediateContext->CSSetShaderResources(2, (UINT)BUFFER_COUNT, this->srvArray);
 
 	//Set constant buffers
 	this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
@@ -457,9 +463,6 @@ void Graphics::lightPass()
 	//Camera
 	this->camera.update();
 	this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
-
-	//Shadow map
-
 
 	//Dispatch
 	this->immediateContext->Dispatch(this->threadX, this->threadY, this->threadZ);

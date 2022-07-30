@@ -49,6 +49,8 @@ private:
 	ID3D11DepthStencilView* shadowMapDSV;
 	ID3D11ShaderResourceView* shadowMapSRV;
 
+	ID3D11SamplerState* shadowMapSampler = nullptr;
+
 	unsigned int shadowMapSize;
 	
 	//Light stuff
@@ -88,5 +90,7 @@ public:
 	inline ConstantBuffer& getShadowMapMVPConstnantBuffer() { return this->shadowMapMVPBuffer; }
 	inline ID3D11Buffer*& getStructureBuffer() { return this->strucutreBuffer; }
 	inline ID3D11ShaderResourceView*& getStructureSRV() { return this->structreSRV; }
+
+	inline ID3D11SamplerState*& getSampler() { return this->shadowMapSampler; }
 };
 

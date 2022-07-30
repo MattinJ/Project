@@ -30,18 +30,21 @@ cbuffer camera : register(b2)
     float pad;
 };
 
-//Sampler
-//Texture2D depthMapTexture : register(t0);
 
 StructuredBuffer<LightBuffer> buffer : register(t0);
 
-//SRV
-Texture2D<float4> clipPositions : register(t1);
-Texture2D<float4> normals : register(t2);
-Texture2D<float4> diffuse : register(t3);
-Texture2D<float4> worldPos : register(t4);
-Texture2D<float4> ambient : register(t5);
-Texture2D<float4> specular : register(t6);
+//Sampler
+SamplerState detphSampler : register(s1);
+//Shadowmap depth textures
+Texture2D shadowMapTexture : register(t1);
+
+//gBuffers
+Texture2D<float4> clipPositions : register(t2);
+Texture2D<float4> normals : register(t3);
+Texture2D<float4> diffuse : register(t4);
+Texture2D<float4> worldPos : register(t5);
+Texture2D<float4> ambient : register(t6);
+Texture2D<float4> specular : register(t7);
 
 //UAV
 RWTexture2D<unorm float4> output : register(u0);
@@ -61,16 +64,75 @@ void main(uint3 DTid : SV_DispatchThreadID)
         
     for (uint i = 0; i < 1; i++)
     {
-        float3 lightToPixelVec = worldPos[DTid.xy].xyz - buffer[i].lightPos;
-        float distance = length(lightToPixelVec);
-        
         float3 reflection = float3(0.0f, 0.0f, 0.0f);
         float4 specularIntensity = float4(0.0f, 0.0f, 0.0f, 0.0f);
         
+        float3 shadowFactor = 1.0f;
+        
+        //Shadow map
+    
+        //Light view space
+        float4 lightViewPos = mul(float4(worldPos[DTid.xy].xyz, 1.0f), lightVP);
+        //lightViewPos /= lightViewPos.w;
+        
+        //if (lightViewPos.x >= -1.0f && lightViewPos.x <= 1.0f &&
+        //    lightViewPos.y >= -1.0f && lightViewPos.y <= 1.0f &&
+        //    lightViewPos.z >= 0.0f && lightViewPos.z <= 1.0f)
+        //{
+        //    lightViewPos.y *= -1.0f;
+        //    lightViewPos.xy = (lightViewPos.xy + float2(1.0f, 1.0f)) * 0.5f;
+            
+        //    float2 invSize = 1.0f / 1024;
+        //    float2 lightPosCorner = lightViewPos.xy * 1024;
+        //    float2 floorLightPosCorner = floor(lightPosCorner);
+        //    float2 fractLightPosCorner = frac(lightPosCorner);
+            
+        //    float bias = shadow_bias;
+            
+        //    Compare
+
+        //    float lightDepth0 = shadowMapTexture.Sample(detphSampler, (floorLightPosCorner) * invSize) + bias >= lightViewPos.z ? 1.0f : 0.0f;
+        //    float lightDepth1 = shadowMapTexture.Sample(detphSampler, (floorLightPosCorner + float2(1.0f, 0.0f)) * invSize) + bias >= lightViewPos.z ? 1.0f : 0.0f;
+        //    float lightDepth2 = shadowMapTexture.Sample(detphSampler, (floorLightPosCorner + float2(0.0f, 1.0f)) * invSize) + bias >= lightViewPos.z ? 1.0f : 0.0f;
+        //    float lightDepth3 = shadowMapTexture.Sample(detphSampler, (floorLightPosCorner + float2(1.0f, 1.0f)) * invSize) + bias >= lightViewPos.z ? 1.0f : 0.0f;
+
+        //    Interpolate
+
+        //    float edge0 = lerp(lightDepth0, lightDepth1, fractLightPosCorner.x);
+        //    float edge1 = lerp(lightDepth2, lightDepth3, fractLightPosCorner.x);
+        //    shadowFactor = lerp(edge0, edge1, fractLightPosCorner.y);
+            
+
+        //}
+        
+        float2 projUV;
+       
+        projUV.x = lightViewPos.x / lightViewPos.w / 2.0f + 0.5f;
+        projUV.y = -lightViewPos.y / lightViewPos.w / 2.0f + 0.5f;
+        
+        //Check if projUV are in light view
+        if (projUV.x >= 0.0f && projUV.x <= 1.0f &&
+        projUV.y >= 0.0f && projUV.y <= 1.0f)
+        {
+            //Sample the shadow map depth, we only need the Red value
+            float lightDepthValue = shadowMapTexture[projUV * float2(1024, 1024)].r;
+        
+            //Calculate the depth of light
+            float pixeldepthValue = lightViewPos.z / lightViewPos.w;
+            lightDepthValue = lightDepthValue - shadow_bias;
+        
+            //Compare depth
+            if (lightDepthValue < pixeldepthValue)
+            {
+                shadowFactor = 0;
+            }
+    }
+        
+        
         if (buffer[i].lightType == 0) //Directional
         {
-            //lightToPixelVec = buffer[i].lightDir;
-            //lightToPixelVec = normalize(-lightToPixelVec);
+            float3 lightToPixelVec = buffer[i].lightDir;
+            lightToPixelVec = normalize(-lightToPixelVec);
             
             finalColor += saturate(dot(buffer[i].lightDir, normals[DTid.xy].xyz) * buffer[i].lightDiffuse * diffuse[DTid.xy]);
     
@@ -85,7 +147,8 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
         else if (buffer[i].lightType == 1) //Spotlight
         {
-            
+            float3 lightToPixelVec = worldPos[DTid.xy].xyz - buffer[i].lightPos;
+            float distance = length(lightToPixelVec);
              
             if (distance > buffer[i].lightRange)
             continue;
@@ -126,12 +189,12 @@ void main(uint3 DTid : SV_DispatchThreadID)
             
         }
     
-        finalColor = saturate(finalColor + finalAmbient + specularIntensity.xyz );
+        finalColor += saturate((finalColor + finalAmbient + specularIntensity.xyz) * shadowFactor);
     }
     
     output[DTid.xy] = float4(finalColor, 1.0f);
-    //output[DTid.xy] = specular[DTid.xy];
+    //output[DTid.xy] = float4(shadowMapTexture[DTid.xy].r, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
-    //output[DTid.xy] = float4(buffer[0].lightPos, 1.0f);
+    //output[DTid.xy] = float4(buffer[1].lightPos, 1.0f);
 
 }

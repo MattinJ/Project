@@ -2,11 +2,15 @@
 #include "Graphics.h"
 #include "../Application/Input.h"
 #include "../Application/ErrorLogger.h"
+#include "../Application/Settings.h"
+
+using namespace DirectX;
 
 bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, DirectX::SimpleMath::Vector3 dir)
 {
 	LightStruct light = {};
 	light.position = pos;
+	dir.Normalize();
 	light.direction = dir;
 	light.color = DirectX::SimpleMath::Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 	light.lightType = 1;
@@ -32,15 +36,15 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 	this->lights.push_back(light);
 
-	return false;
+	return true;
 }
 
 bool Light::initLights()
 {
-	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f), DirectX::SimpleMath::Vector3(1.0f, 1.0f, -1.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 0.0f, 1.0f));
+	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
 	
-	return false;
+	return true;
 }
 
 bool Light::initBuffer()
@@ -89,7 +93,7 @@ bool Light::initBuffer()
 
 Light::Light(Graphics& graphic, LightType type)
 	:graphic(graphic), shadowMapMVPBuffer(graphic, "Shadow map CB"), bufferSize(0),
-	shadowMapDepthTexture(nullptr), shadowMapDSV(nullptr), shadowMapSize(512), shadowMapSRV(nullptr), shadowMap_VS(graphic)
+	shadowMapDepthTexture(nullptr), shadowMapDSV(nullptr), shadowMapSize(1024), shadowMapSRV(nullptr), shadowMap_VS(graphic)
 
 {
 }
@@ -110,6 +114,9 @@ Light::~Light()
 
 	if (this->structreSRV != nullptr)
 		this->structreSRV->Release();
+
+	if (this->shadowMapSampler != nullptr)
+		this->shadowMapSampler->Release();
 
 }
 
@@ -192,6 +199,31 @@ bool Light::init()
 		100, 100, 0.1f, 200.0f
 	);
 
+	//Sampler
+	D3D11_SAMPLER_DESC samplerDesc{};
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.MipLODBias = 0.0f;
+	samplerDesc.MaxAnisotropy = 1;
+	samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	samplerDesc.BorderColor[0] = 0;
+	samplerDesc.BorderColor[1] = 0;
+	samplerDesc.BorderColor[2] = 0;
+	samplerDesc.BorderColor[3] = 0;
+	samplerDesc.MinLOD = 0;
+	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+
+	// Create sampler
+	hr = this->graphic.getDevice()->CreateSamplerState(&samplerDesc, &this->shadowMapSampler);
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Could not create depth map sampler.");
+
+		return false;
+	}
+
 	//Create Constantbuffers
 	this->shadowMapMVPBuffer.createBuffer(sizeof(lightBufferMVP), sizeof(LightBufferVP), &lightBufferMVP);
 
@@ -203,7 +235,12 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 	for (size_t i = 0; i < this->lights.size(); i++)
 	{
 		//Update view matrix
-		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->lights[i].position, DirectX::SimpleMath::Vector3(0.0f, 0.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
+		DirectX::XMFLOAT3 test;
+		test.x = this->lights[i].position.x + this->lights[i].direction.x;
+		test.y = this->lights[i].position.y + this->lights[i].direction.y;
+		test.z = this->lights[i].position.z + this->lights[i].direction.z;
+
+		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->lights[i].position, test, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
 
 		//Make vpMatrix
 		DirectX::SimpleMath::Matrix vpMatrix = this->viewMatrix * this->projectionMatrix;
@@ -269,20 +306,20 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 
 bool Light::update(Camera& camera)
 {
-	this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
-	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
+	/*this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
+	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);*/
 
-	for (size_t i = 0; i < this->lights.size(); i++)
+	/*for (size_t i = 0; i < this->lights.size(); i++)
 	{
 		if (this->lights[i].lightType == 1)
 		{
 			this->lights[0].position = camera.getPostion();
 			this->lights[0].direction = camera.getTarget() - this->lights[0].position;
 		}
-	}
+	}*/
 	
 	//Map
-	D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
+	/*D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
 	HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);
 
 	if (FAILED(hr))
@@ -293,8 +330,8 @@ bool Light::update(Camera& camera)
 
 	memcpy(mappedSubResoruce.pData, this->lights.data(), this->bufferSize);
 
-	//Unmap
-	this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);
+	Unmap
+	this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);*/
 
 	return true;
 
