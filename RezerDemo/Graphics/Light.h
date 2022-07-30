@@ -77,7 +77,7 @@ public:
 
 	bool init();
 	void renderShadowMap(std::vector<Mesh*>& meshes);
-	bool update(Camera& camera);
+	bool update();
 
 	inline ID3D11Texture2D*& getShadowMapTexture() { return this->shadowMapDepthTexture; }
 	inline ID3D11DepthStencilView*& getShadowMapDSV() { return this->shadowMapDSV; }

@@ -441,7 +441,7 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->uavBackBuffer, nullptr);
 
 	//Bind structure buffer
-	this->light.update(this->camera);
+	//this->light.update(this->camera);
 	this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
 
 	//Shadow map

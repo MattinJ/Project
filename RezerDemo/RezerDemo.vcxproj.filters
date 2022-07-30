@@ -169,9 +169,9 @@
     <FxCompile Include="Resources\Shaders\Defualt_VS.hlsl" />
     <FxCompile Include="Resources\Shaders\Default_PS.hlsl" />
     <FxCompile Include="Resources\Shaders\ShadowMap_VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Deferred_CS.hlsl" />
     <FxCompile Include="Resources\Shaders\Patricles_GS.hlsl" />
     <FxCompile Include="Resources\Shaders\Particles_VS.hlsl" />
     <FxCompile Include="Resources\Shaders\Particles_PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Deferred_CS.hlsl" />
   </ItemGroup>
 </Project>

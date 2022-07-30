@@ -13,7 +13,6 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	dir.Normalize();
 	light.direction = dir;
 	light.color = DirectX::SimpleMath::Vector4(1.0f, 1.0f, 1.0f, 1.0f);
-	light.lightType = 1;
 
 	switch (type)
 	{
@@ -41,7 +40,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
 	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
 	
 	return true;
@@ -234,6 +233,8 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 {
 	for (size_t i = 0; i < this->lights.size(); i++)
 	{
+		this->update();
+		
 		//Update view matrix
 		DirectX::XMFLOAT3 test;
 		test.x = this->lights[i].position.x + this->lights[i].direction.x;
@@ -304,22 +305,34 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 	
 }
 
-bool Light::update(Camera& camera)
+bool Light::update()
 {
 	/*this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
 	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);*/
 
-	/*for (size_t i = 0; i < this->lights.size(); i++)
+	for (size_t i = 0; i < this->lights.size(); i++)
 	{
 		if (this->lights[i].lightType == 1)
 		{
-			this->lights[0].position = camera.getPostion();
-			this->lights[0].direction = camera.getTarget() - this->lights[0].position;
+			/*this->lights[0].position = camera.getPostion();
+			this->lights[0].direction = camera.getTarget() - this->lights[0].position;*/
+
+			if (Input::isKeyDown(Keys::Q))
+			{
+				this->lights[0].position.x = this->lights[0].position.x - 0.2;
+				this->lights[0].direction.x = this->lights[0].direction.x - 0.2;
+			}
+				
+			if (Input::isKeyDown(Keys::E))
+			{
+				this->lights[0].position.x = this->lights[0].position.x + 0.2;
+				this->lights[0].direction.x = this->lights[0].direction.x + 0.2;
+			}	
 		}
-	}*/
+	}
 	
 	//Map
-	/*D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
+	D3D11_MAPPED_SUBRESOURCE mappedSubResoruce;
 	HRESULT hr = this->graphic.getDeviceContext()->Map(this->strucutreBuffer, NULL, D3D11_MAP_WRITE_DISCARD, NULL, &mappedSubResoruce);
 
 	if (FAILED(hr))
@@ -330,8 +343,8 @@ bool Light::update(Camera& camera)
 
 	memcpy(mappedSubResoruce.pData, this->lights.data(), this->bufferSize);
 
-	Unmap
-	this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);*/
+	//Unmap
+	this->graphic.getDeviceContext()->Unmap(this->strucutreBuffer, 0);
 
 	return true;
 
