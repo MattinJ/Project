@@ -25,7 +25,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	{
 		light.range = 10.0f;
 		light.cone = 20.0f;
-		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.01f);
+		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.0f);
 		light.lightType = 1;
 		break;
 	}
@@ -41,9 +41,9 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
-	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(4.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
+	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(-0.5f, -1.0f, 0.0f));
 	
 	return true;
 }
@@ -281,14 +281,14 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 			//Draw
 			this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
 		}
+
+		ID3D11DepthStencilView* nullDSV = nullptr;
+		this->graphic.getDeviceContext()->OMSetRenderTargets(1, &nullRTV, nullDSV);
 	}
 }
 
 bool Light::update()
 {
-	/*this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
-	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);*/
-
 	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
 		if (this->lights[i].lightType == 1)

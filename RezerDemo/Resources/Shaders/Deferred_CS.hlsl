@@ -5,7 +5,7 @@ struct LightBuffer
     float lightRange;
     float3 lightDir;
     float lightCone;
-    float4 lightDiffuse;
+    float4 lightColor;
     float3 lightAtt;
     int lightType;
 };
@@ -89,61 +89,77 @@ float shadowCalc(float3 worldPos, int index)
 void main(uint3 DTid : SV_DispatchThreadID)
 {
     float4 diffuseColor = diffuse[DTid.xy];
-    float4 finalColor = ambient[DTid.xy];
+    float4 finalColor = diffuseColor * ambient[DTid.xy];
+    float3 lightColor = float3(0.0f, 0.0f, 0.0f);
     float3 lightDir = float3(0.0f, 0.0f, 0.0f);
     float3 viewDir = normalize(cameraPos.xyz - worldPos[DTid.xy].xyz);
     float lightIntensity = 0;
     float3 reflection = float3(0.0f, 0.0f, 0.0f);
     float4 specularIntensity = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float shadowFactor = 1.0f;
-  
+    
     for (uint i = 0; i < 1; i++)
-    {
+    {     
         if (buffer[i].lightType == 0) //Directional
         {
             lightDir = -buffer[i].lightDir;
             lightIntensity = saturate(dot(normals[DTid.xy].xyz, lightDir));
+            
                 
             if (lightIntensity > 0.0f)
             {
-                finalColor += (diffuse[DTid.xy] * lightIntensity);
-                finalColor = saturate(finalColor);
+                //Calculate diffuse
+                lightColor += (diffuse[DTid.xy] * lightIntensity) * buffer[i].lightColor;
             
-                reflection = normalize(2 * lightIntensity * normals[DTid.xy].xyz - lightDir);
+                //Calculate specular
+                reflection = normalize(reflect(lightDir, normals[DTid.xy].xyz));
                 specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+                
+                lightColor += specularIntensity * specular[DTid.xy];
+                
             }
             
+            //Calculate shadow
             shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
        
         }
         else if (buffer[i].lightType == 1) //Spotlight
         {
-            float3 lightDir2 = buffer[i].lightPos - worldPos[DTid.xy].xyz;
-            float distance = length(lightDir2);
+            float3 pixelToLight = buffer[i].lightPos - worldPos[DTid.xy].xyz;
+            float distance = length(pixelToLight);
             float coneCufOff = 0;
+            pixelToLight /= distance;
             
-            if (distance > buffer[i].lightRange)
-                continue;
+            //if (distance > buffer[i].lightRange)
+            //continue;
             
-            lightIntensity = saturate(dot(lightDir2, normals[DTid.xy].xyz));
+            lightIntensity = saturate(dot(pixelToLight, normals[DTid.xy].xyz));
+            lightDir = -buffer[i].lightDir;
             
             if(lightIntensity > 0.0f)
             {
-                finalColor += (diffuse[DTid.xy] * lightIntensity);
-                finalColor /= (buffer[i].lightAtt[0] + (buffer[i].lightAtt[1] * distance)) + (buffer[i].lightAtt[2] * (distance * distance));
-                finalColor *= pow(max(dot(-lightDir2, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
-  
-                reflection = normalize(2 * lightIntensity * normals[DTid.xy].xyz - lightDir);
-                specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+                //Calculate diffuse
+                lightColor += (diffuse[DTid.xy] * lightIntensity) * buffer[i].lightColor;
                 
-                finalColor = saturate(finalColor * diffuseColor);
+                //Calculate cone cutoff
+                lightColor *= pow(max(dot(-pixelToLight, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
+                
+                //Calculate specular
+                reflection = normalize(reflect(-pixelToLight, normals[DTid.xy].xyz));
+                specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+                lightColor += specularIntensity * specular[DTid.xy];
+                
+                //Calculate attuentions
+                lightColor /= (buffer[i].lightAtt[0] + (buffer[i].lightAtt[1] * distance)) + (buffer[i].lightAtt[2] * (distance * distance));
+                
+                
             }
             
             shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
         }
     }
     
-    finalColor = saturate(finalColor * diffuseColor + specularIntensity) * shadowFactor;
+    finalColor = saturate(finalColor + float4(lightColor, 1.0f)) * shadowFactor;
     
     output[DTid.xy] = finalColor;
     //output[DTid.xy] = float4(shadowMapTexture[DTid.xy].r, 0.0f, 0.0f, 1.0f);
