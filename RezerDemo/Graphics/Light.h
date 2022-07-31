@@ -12,7 +12,7 @@
 
 class Graphics;
 
-const int NR_OF_LIGHT = 1;
+const int NR_OF_LIGHT = 4;
 
 enum class LightType
 {
