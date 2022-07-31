@@ -33,10 +33,8 @@ cbuffer camera : register(b2)
 
 StructuredBuffer<LightBuffer> buffer : register(t0);
 
-//Sampler
-SamplerState detphSampler : register(s1);
 //Shadowmap depth textures
-Texture2D shadowMapTexture : register(t1);
+Texture2DArray shadowMapTexture : register(t1);
 
 //gBuffers
 Texture2D<float4> clipPositions : register(t2);
@@ -55,7 +53,7 @@ RWTexture2D<unorm float4> output : register(u0);
 #define size_z 1
 #define shadow_bias 0.001f;
 
-float shadowCalc(float3 worldPos)
+float shadowCalc(float3 worldPos, int index)
 {
     //Shadow map
     
@@ -71,7 +69,7 @@ float shadowCalc(float3 worldPos)
         projUV.y >= 0.0f && projUV.y <= 1.0f)
     {
         //Sample the shadow map depth, we only need the Red value
-        float lightDepthValue = shadowMapTexture[projUV * float2(1024, 1024)].r;
+        float lightDepthValue = shadowMapTexture.Load(float4(projUV * float2(1024, 1024), index, 0)).r;
         
         //Calculate the depth of light
         float pixeldepthValue = lightViewPos.z / lightViewPos.w;
@@ -115,7 +113,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
                 specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
             }
             
-            shadowFactor = shadowCalc(worldPos[DTid.xy].xyz);
+            shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
        
         }
         else if (buffer[i].lightType == 1) //Spotlight
@@ -141,7 +139,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
                 finalColor = saturate(finalColor * diffuseColor);
             }
             
-            shadowFactor = shadowCalc(worldPos[DTid.xy].xyz);
+            shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
         }
     }
     

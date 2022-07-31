@@ -272,7 +272,7 @@ bool Graphics::initMeshes()
 	planeMesh->createDefualtMesh(DefaultMesh::PLANE);
 	planeMesh->createTexture("ground.jpg");
 	planeMesh->setPosition(0.0f, -2.0f, 0.0f);
-	planeMesh->setScaling(20.0f, 1.0f, 20.0f);
+	planeMesh->setScaling(40.0f, 1.0f, 40.0f);
 	this->meshes.push_back(planeMesh);
 
 	Mesh* sphereMesh = new Mesh(*this);
@@ -446,9 +446,6 @@ void Graphics::lightPass()
 
 	//Shadow map
 	this->immediateContext->CSSetShaderResources(1, 1, &this->light.getShadowMapSRV());
-
-	//Bind shadow map sampler
-	this->immediateContext->CSSetSamplers(0, 1, &this->light.getSampler());
 
 	//Set gBuffers
 	this->immediateContext->CSSetShaderResources(2, (UINT)BUFFER_COUNT, this->srvArray);

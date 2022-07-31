@@ -34,6 +34,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	}
 
 	this->lights.push_back(light);
+	this->nrOfLights++;
 
 	return true;
 }
@@ -41,6 +42,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 bool Light::initLights()
 {
 	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(4.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
 	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
 	
 	return true;
@@ -77,7 +79,7 @@ bool Light::initBuffer()
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 	srvDesc.Buffer.FirstElement = 0;
-	srvDesc.Buffer.NumElements = this->lights.size();
+	srvDesc.Buffer.NumElements = (UINT)NR_OF_LIGHT;
 
 	hr = this->graphic.getDevice()->CreateShaderResourceView(this->strucutreBuffer, &srvDesc, &this->structreSRV);
 
@@ -92,18 +94,19 @@ bool Light::initBuffer()
 
 Light::Light(Graphics& graphic, LightType type)
 	:graphic(graphic), shadowMapMVPBuffer(graphic, "Shadow map CB"), bufferSize(0),
-	shadowMapDepthTexture(nullptr), shadowMapDSV(nullptr), shadowMapSize(1024), shadowMapSRV(nullptr), shadowMap_VS(graphic)
+	 shadowMapDepthTexture(nullptr), shadowMapSize(1024), shadowMapSRV(nullptr), shadowMap_VS(graphic)
 
 {
+	for (size_t i = 0; i < NR_OF_LIGHT; i++)
+	{
+		this->shadowMapDSV[i] = nullptr;
+	}
 }
 
 Light::~Light()
 {
 	if(this->shadowMapDepthTexture != nullptr)
 		this->shadowMapDepthTexture->Release();
-
-	if (this->shadowMapDSV != nullptr)
-		this->shadowMapDSV->Release();
 
 	if (this->shadowMapSRV != nullptr)
 		this->shadowMapSRV->Release();
@@ -114,8 +117,10 @@ Light::~Light()
 	if (this->structreSRV != nullptr)
 		this->structreSRV->Release();
 
-	if (this->shadowMapSampler != nullptr)
-		this->shadowMapSampler->Release();
+	for (size_t i = 0; i < NR_OF_LIGHT; i++)
+	{
+		this->shadowMapDSV[i]->Release();
+	}
 
 }
 
@@ -129,8 +134,8 @@ bool Light::init()
 	textureDesc.Width = this->shadowMapSize;
 	textureDesc.Height = this->shadowMapSize;
 	textureDesc.MipLevels = 1;
-	textureDesc.ArraySize = 1;
-	textureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	textureDesc.ArraySize = (UINT)NR_OF_LIGHT;
+	textureDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
@@ -138,7 +143,6 @@ bool Light::init()
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
 	textureDesc.CPUAccessFlags = 0;
-	textureDesc.MipLevels = 0;
 
 	//Create depth stencil texture
 	HRESULT hr = this->graphic.getDevice()->CreateTexture2D(&textureDesc, nullptr, &this->shadowMapDepthTexture);
@@ -150,10 +154,11 @@ bool Light::init()
 
 	//Create shader resource view desc
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MipLevels = 1;
-	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+	srvDesc.Texture2DArray.ArraySize = (UINT)NR_OF_LIGHT;
+	srvDesc.Texture2DArray.FirstArraySlice = 0;
+	srvDesc.Texture2DArray.MipLevels = 1;
 
 	//Create shader resource view
 	hr = this->graphic.getDevice()->CreateShaderResourceView(this->shadowMapDepthTexture, &srvDesc, &this->shadowMapSRV);
@@ -163,18 +168,24 @@ bool Light::init()
 		return false;
 	}
 
-	//Create depth stencil view desciptor
-	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
-	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
-	dsvDesc.Texture2D.MipSlice = 0;
-
-	//Create depth stencil view
-	hr = this->graphic.getDevice()->CreateDepthStencilView(this->shadowMapDepthTexture, &dsvDesc, &this->shadowMapDSV);
-	if (FAILED(hr))
+	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
-		ErrorLogger::errorMessage("Faileded to create shadow map DSV");
-		return false;
+		//Create depth stencil view desciptor
+		D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+		dsvDesc.Texture2DArray.ArraySize = 1;
+		srvDesc.Texture2DArray.FirstArraySlice = UINT(i);
+		srvDesc.Texture2DArray.MipLevels = 1;
+
+		//Create depth stencil view
+		hr = this->graphic.getDevice()->CreateDepthStencilView(this->shadowMapDepthTexture, &dsvDesc, &this->shadowMapDSV[i]);
+		if (FAILED(hr))
+		{
+			ErrorLogger::errorMessage("Faileded to create shadow map DSV");
+			return false;
+		}
+
 	}
 
 	//shadow map vertex shader
@@ -198,31 +209,6 @@ bool Light::init()
 		100, 100, 0.1f, 200.0f
 	);
 
-	//Sampler
-	D3D11_SAMPLER_DESC samplerDesc{};
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.MipLODBias = 0.0f;
-	samplerDesc.MaxAnisotropy = 1;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-	samplerDesc.BorderColor[0] = 0;
-	samplerDesc.BorderColor[1] = 0;
-	samplerDesc.BorderColor[2] = 0;
-	samplerDesc.BorderColor[3] = 0;
-	samplerDesc.MinLOD = 0;
-	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-
-	// Create sampler
-	hr = this->graphic.getDevice()->CreateSamplerState(&samplerDesc, &this->shadowMapSampler);
-	if (FAILED(hr))
-	{
-		ErrorLogger::errorMessage("Could not create depth map sampler.");
-
-		return false;
-	}
-
 	//Create Constantbuffers
 	this->shadowMapMVPBuffer.createBuffer(sizeof(lightBufferMVP), sizeof(LightBufferVP), &lightBufferMVP);
 
@@ -231,26 +217,26 @@ bool Light::init()
 
 void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 {
-	for (size_t i = 0; i < this->lights.size(); i++)
+	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
 		this->update();
 		
 		//Update view matrix
-		DirectX::XMFLOAT3 test;
-		test.x = this->lights[i].position.x + this->lights[i].direction.x;
-		test.y = this->lights[i].position.y + this->lights[i].direction.y;
-		test.z = this->lights[i].position.z + this->lights[i].direction.z;
+		DirectX::XMFLOAT3 setTarget = {};
+		setTarget.x = this->lights[i].position.x + this->lights[i].direction.x;
+		setTarget.y = this->lights[i].position.y + this->lights[i].direction.y;
+		setTarget.z = this->lights[i].position.z + this->lights[i].direction.z;
 
-		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->lights[i].position, test, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
+		this->viewMatrix = DirectX::SimpleMath::Matrix::CreateLookAt(this->lights[i].position, setTarget, DirectX::SimpleMath::Vector3(0.0f, 1.0f, 0.0f));
 
 		//Make vpMatrix
 		DirectX::SimpleMath::Matrix vpMatrix = this->viewMatrix * this->projectionMatrix;
 
 		//Clear depth texture
-		this->graphic.getDeviceContext()->ClearDepthStencilView(this->shadowMapDSV, D3D11_CLEAR_DEPTH, 1, 0);
+		this->graphic.getDeviceContext()->ClearDepthStencilView(this->shadowMapDSV[i], D3D11_CLEAR_DEPTH, 1, 0);
 
 		ID3D11RenderTargetView* nullRTV = nullptr;
-		this->graphic.getDeviceContext()->OMSetRenderTargets(1, &nullRTV, this->shadowMapDSV);
+		this->graphic.getDeviceContext()->OMSetRenderTargets(1, &nullRTV, this->shadowMapDSV[i]);
 
 		//Set view port
 		this->graphic.getDeviceContext()->RSSetViewports(1, &this->shadowMapVP);
@@ -262,20 +248,15 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 		//Set pixel shader as null
 		this->graphic.getDeviceContext()->PSSetShader(nullptr, nullptr, 0);
 
-		//Set renderer target as null and add shadow DSV
-
 		//Set mvp buffer
 		this->graphic.getDeviceContext()->VSSetConstantBuffers(0, 1, &this->shadowMapMVPBuffer.getBuffer());
 
-		//Set null to sampler and texture
-		//ID3D11SamplerState* nullSampler[]{ nullptr };
+		//Set null srv
 		ID3D11ShaderResourceView* nullSRV[]{ nullptr };
 
-		//this->graphic.getDeviceContext()->PSSetSamplers(0, 1, nullSampler);
 		this->graphic.getDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
 
 		//Go over all meshes
-
 		for (size_t i = 0; i < meshes.size(); i++)
 		{
 			DirectX::SimpleMath::Matrix m = meshes[i]->getWorldMatrix();
@@ -301,8 +282,6 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 			this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
 		}
 	}
-	
-	
 }
 
 bool Light::update()
@@ -310,7 +289,7 @@ bool Light::update()
 	/*this->lightBufferMVP.vpMatrix = this->viewMatrix * this->projectionMatrix;
 	this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);*/
 
-	for (size_t i = 0; i < this->lights.size(); i++)
+	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
 		if (this->lights[i].lightType == 1)
 		{
@@ -319,14 +298,26 @@ bool Light::update()
 
 			if (Input::isKeyDown(Keys::Q))
 			{
-				this->lights[0].position.x = this->lights[0].position.x - 0.2;
-				this->lights[0].direction.x = this->lights[0].direction.x - 0.2;
+				//this->lights[i].position.x = this->lights[i].position.x - 0.2;
+				
+				DirectX::SimpleMath::Vector3 dir;
+				dir.x = this->lights[i].direction.x - 0.2;
+				dir.y = this->lights[i].direction.y;
+				dir.z = this->lights[i].direction.z;
+				dir.Normalize();
+				this->lights[i].direction = dir;
 			}
 				
 			if (Input::isKeyDown(Keys::E))
 			{
-				this->lights[0].position.x = this->lights[0].position.x + 0.2;
-				this->lights[0].direction.x = this->lights[0].direction.x + 0.2;
+				//this->lights[i].position.x = this->lights[i].position.x + 0.2;
+				
+				DirectX::SimpleMath::Vector3 dir;
+				dir.x = this->lights[i].direction.x + 0.2;
+				dir.y = this->lights[i].direction.y;
+				dir.z = this->lights[i].direction.z;
+				dir.Normalize();
+				this->lights[i].direction = dir;
 			}	
 		}
 	}

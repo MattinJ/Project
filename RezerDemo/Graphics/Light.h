@@ -12,6 +12,8 @@
 
 class Graphics;
 
+const int NR_OF_LIGHT = 1;
+
 enum class LightType
 {
 	DIRECTIONAL,
@@ -38,6 +40,8 @@ private:
 		int lightType;
 	};
 
+
+
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 
@@ -46,15 +50,14 @@ private:
 	//Shadow map stuff
 	D3D11_VIEWPORT shadowMapVP;
 	ID3D11Texture2D* shadowMapDepthTexture;
-	ID3D11DepthStencilView* shadowMapDSV;
 	ID3D11ShaderResourceView* shadowMapSRV;
-
-	ID3D11SamplerState* shadowMapSampler = nullptr;
+	ID3D11DepthStencilView* shadowMapDSV[NR_OF_LIGHT];
 
 	unsigned int shadowMapSize;
 	
 	//Light stuff
 	std::vector<LightStruct> lights;
+	int nrOfLights = 0;
 
 	Graphics& graphic;
 
@@ -80,7 +83,7 @@ public:
 	bool update();
 
 	inline ID3D11Texture2D*& getShadowMapTexture() { return this->shadowMapDepthTexture; }
-	inline ID3D11DepthStencilView*& getShadowMapDSV() { return this->shadowMapDSV; }
+	inline ID3D11DepthStencilView*& getShadowMapDSVarray(int index) { return this->shadowMapDSV[index]; }
 	inline ID3D11ShaderResourceView*& getShadowMapSRV() { return this->shadowMapSRV; }
 
 	inline DirectX::SimpleMath::Matrix& getViewMatrix() { return this->viewMatrix; }
@@ -90,7 +93,5 @@ public:
 	inline ConstantBuffer& getShadowMapMVPConstnantBuffer() { return this->shadowMapMVPBuffer; }
 	inline ID3D11Buffer*& getStructureBuffer() { return this->strucutreBuffer; }
 	inline ID3D11ShaderResourceView*& getStructureSRV() { return this->structreSRV; }
-
-	inline ID3D11SamplerState*& getSampler() { return this->shadowMapSampler; }
 };
 
