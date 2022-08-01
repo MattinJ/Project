@@ -97,9 +97,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
     float4 specularIntensity = float4(0.0f, 0.0f, 0.0f, 0.0f);
     float shadowFactor = 1.0f;
     
-    float4 ambientColor = ambient[DTid.xy] * diffuseColor;
+    //Set ambient to defualt color.
+    float4 ambientColor = ambient[DTid.xy];
     
-    for (uint i = 0; i < 4; i++)
+    for (uint i = 0; i < 1; i++)
     {
         if (buffer[i].lightType == 0) //Directional
         {
@@ -110,7 +111,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
             if (lightIntensity > 0.0f)
             {
                 //Calculate diffuse
-                lightColor += diffuse[DTid.xy] * lightIntensity * buffer[i].lightColor;
+                lightColor += diffuseColor * lightIntensity * buffer[i].lightColor;
             
                 //Calculate specular
                 reflection = normalize(reflect(-lightDir, normals[DTid.xy].xyz));
@@ -130,27 +131,26 @@ void main(uint3 DTid : SV_DispatchThreadID)
             
             float3 pixelToLight = buffer[i].lightPos - worldPos[DTid.xy].xyz;
             float distance = length(pixelToLight);
-            float coneCufOff = 0;
             pixelToLight /= distance;
             
             if (distance > buffer[i].lightRange)
                 continue;
             
             lightIntensity = saturate(dot(pixelToLight, normals[DTid.xy].xyz));
-            lightDir = -buffer[i].lightDir;
+            lightDir = normalize(buffer[i].lightDir);
             
             if (lightIntensity > 0.0f)
             {
                 //Calculate diffuse
-                lightColor += diffuse[DTid.xy] * lightIntensity * buffer[i].lightColor;
+                lightColor += diffuseColor * lightIntensity * buffer[i].lightColor;
                 
                 //Calculate cone cutoff
                 lightColor *= pow(max(dot(-pixelToLight, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
                 
                 //Calculate specular
-                reflection = normalize(reflect(-pixelToLight, normals[DTid.xy].xyz));
-                specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
-                lightColor += specularIntensity;
+                reflection = normalize(reflect(lightDir, normals[DTid.xy].xyz));
+                lightColor += float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+                //lightColor += specularIntensity;
                 
                 //Calculate attuentions
                 lightColor /= (buffer[i].lightAtt[0] + (buffer[i].lightAtt[1] * distance)) + (buffer[i].lightAtt[2] * (distance * distance));
@@ -164,7 +164,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     output[DTid.xy] = saturate(ambientColor + lightColor);
-    //output[DTid.xy] = float4(shadowMapTexture[DTid.xy].r, 0.0f, 0.0f, 1.0f);
+    //output[DTid.xy] = diffuse[DTid.xy];
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[1].lightPos, 1.0f);
 

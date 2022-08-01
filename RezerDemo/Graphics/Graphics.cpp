@@ -7,6 +7,7 @@
 #pragma comment(lib, "D3DCompiler.lib")
 
 namespace dx = DirectX;
+using namespace DirectX::SimpleMath;
 
 bool Graphics::resourceManagement()
 {
@@ -62,6 +63,12 @@ bool Graphics::loadShaders()
 	this->deferred_VS.loadVS(L"Deferred_VS", inputLayoutDesc);
 	this->deferred_PS.loadPS(L"Deferred_PS");
 
+	InputLayoutDesc particleInputDesc;
+	particleInputDesc.add("POSITION", DXGI_FORMAT_R32G32B32_FLOAT);
+
+	this->particle_VS.loadVS(L"Particles_VS", particleInputDesc);
+	this->particle_PS.loadPS(L"Particles_PS");
+
 	//Lighting pass shaders
 	
 	//Compute shader
@@ -80,6 +87,22 @@ bool Graphics::loadShaders()
 	if (FAILED(hr))
 	{
 		ErrorLogger::errorMessage("Failed to create compute shader.");
+		return false;
+	}
+
+	//Load geometry shader
+	hr = D3DReadFileToBlob(L"CompiledShaders/Patricles_GS.cso", &blob);
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to read GS shader.");
+		return false;
+	}
+
+	//Create geometry shader
+	hr = this->device->CreateGeometryShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &this->particle_GS);
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to create GS.");
 		return false;
 	}
 
@@ -110,7 +133,14 @@ bool Graphics::createDevices()
 		return false;
 	}
 
-	//hr = this->device->CreateRenderTargetView(this->backBuffer, nullptr, &this->rtv);
+	hr = this->device->CreateRenderTargetView(this->backBuffer, nullptr, &this->rtvBackBuffer);
+
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Error creating RTV backbuffer.");
+		return false;
+	}
+
 	hr = this->device->CreateUnorderedAccessView(this->backBuffer, nullptr, &this->uavBackBuffer);
 
 	if (FAILED(hr))
@@ -173,19 +203,36 @@ bool Graphics::createDevices()
 
 	this->immediateContext->OMSetDepthStencilState(this->dsState, 0);
 
+	//Particle uav
+	D3D11_UNORDERED_ACCESS_VIEW_DESC partuavDesc = {};
+	partuavDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	partuavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	partuavDesc.Buffer.FirstElement = 0;
+	partuavDesc.Buffer.NumElements = 3;
+	partuavDesc.Buffer.Flags = 0;
+
 	return true;
 }
 
 void Graphics::shadowMap()
 {
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	this->light.renderShadowMap(this->meshes);
 }
 
 void Graphics::geometryPass()
 {
+	//Set rtv backbuffer
+	this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
+
+	//Particles
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	this->rendererParticle(this->particle);
+	
 	//Set renderer targets
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
-
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	//Meshes
 	for (size_t i = 0; i < this->meshes.size(); i++)
 	{
 		this->renderMesh(*this->meshes[i]);
@@ -194,9 +241,10 @@ void Graphics::geometryPass()
 
 Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
-	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this),
+	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), particleCB(*this, "particle CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this)
+	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particle(*this), particleTexture(*this),
+	particle_VS(*this), particle_PS(*this)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -212,6 +260,8 @@ Graphics::~Graphics()
 	this->backBuffer->Release();
 	this->uavBackBuffer->Release();
 	this->deffered_CS->Release();
+	this->particle_GS->Release();
+	this->rtvBackBuffer->Release();
 
 	this->dsState->Release();
 	this->dsTexture->Release();
@@ -248,6 +298,7 @@ void Graphics::render()
 	//Update camera
 	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
 	this->mvpBufferStruct.vpMatrix = vp.Transpose();
+	this->particleBufferStruct.vpMatrix = vp.Transpose();
 
 	//Shadow map
 	this->shadowMap();
@@ -273,12 +324,13 @@ bool Graphics::initMeshes()
 	planeMesh->createTexture("ground.jpg");
 	planeMesh->setPosition(0.0f, -2.0f, 0.0f);
 	planeMesh->setScaling(40.0f, 1.0f, 40.0f);
+	planeMesh->setSpecularPower(0.0f);
 	this->meshes.push_back(planeMesh);
 
 	Mesh* sphereMesh = new Mesh(*this);
 	sphereMesh->createDefualtMesh(DefaultMesh::SPHERE);
 	sphereMesh->createTexture("texture3d.jpg");
-	sphereMesh->setPosition(0.0f, 0.0f, 0.0f);
+	sphereMesh->setPosition(0.0f, 3.0f, 0.0f);
 	this->meshes.push_back(sphereMesh);
 
 	Mesh* cubeMesh = new Mesh(*this);
@@ -305,7 +357,13 @@ bool Graphics::initMeshes()
 	cubeMesh4->setPosition(0.0f, 0.0f, 3.0f);
 	this->meshes.push_back(cubeMesh4);
 
-	
+	return true;
+}
+
+bool Graphics::initParticles()
+{
+	this->particle.setPosition(Vector3(0.0f, 0.0f, 0.0f));
+	this->particle.init();
 	
 	return true;
 }
@@ -429,6 +487,47 @@ void Graphics::renderMesh(Mesh& mesh)
 	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
 }
 
+void Graphics::rendererParticle(Particle& particle)
+{
+	//Set input layout and vertex shader
+	this->immediateContext->IASetInputLayout(this->particle_VS.getInputLayout());
+	this->immediateContext->VSSetShader(this->particle_VS.getVS(), nullptr, 0);
+
+	//Set geometryshader
+	this->immediateContext->GSSetShader(this->particle_GS, nullptr, 0);
+	
+	//Set pixel shader
+	this->immediateContext->PSSetShader(this->particle_PS.getPS(), nullptr, 0);
+
+	//Set partcile buffer
+	DirectX::SimpleMath::Matrix m = particle.getWorldMatrix();
+	this->particleBufferStruct.worldMatrix = m.Transpose();
+	this->particleBufferStruct.cameraPos = this->camera.getPostion();
+	this->particleCB.updateBuffer(&this->particleBufferStruct);
+
+	//Set vertex/index buffer
+	this->immediateContext->IASetVertexBuffers(0, 1, &particle.getVertexBuffer(), &particle.getStride(), &particle.getOffSet());
+
+	//Set constant buffer to GS
+	this->immediateContext->GSSetConstantBuffers(0, 1, &this->particleCB.getBuffer());
+
+	//Set Sampler and textures
+	this->immediateContext->PSSetSamplers(0, 1, &this->particleTexture.getSamplerState());
+	this->immediateContext->PSSetShaderResources(0, 1, &this->particleTexture.getSRV());
+
+	//Draw
+	this->immediateContext->Draw(1, 0);
+	
+	//remove sampler srv and gemotryshader 
+	ID3D11SamplerState* nullSampler = nullptr;
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+
+	this->immediateContext->PSSetSamplers(0, 1, &nullSampler);
+	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
+	this->immediateContext->GSSetShader(nullptr, nullptr, 0);
+	this->immediateContext->OMSetRenderTargets(1, &this->nullRTV, this->dsv);
+}
+
 void Graphics::lightPass()
 {
 	//Clear renderer target view
@@ -441,7 +540,6 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->uavBackBuffer, nullptr);
 
 	//Bind structure buffer
-	//this->light.update(this->camera);
 	this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
 
 	//Shadow map
@@ -454,7 +552,8 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
 
 	//Material
-	this->materialCB.createBuffer(sizeof(materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
+	//this->materialCB.updateBuffer(&this->materialBufferStruct);
+	this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
 	this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
 
 	//Camera
@@ -469,22 +568,27 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
 }
 
+void Graphics::particlePass()
+{
+	this->rendererParticle(this->particle);
+}
+
 bool Graphics::init(Window& window)
 {
 	this->window = &window;
 
 	this->resourceManagement();
+	this->initParticles();
 	this->initMeshes();
 
 	this->createDevices();
-
 	this->defferdInit();
-
 	this->loadShaders();
 
 	//Textures
 	this->specularTexture.loadTexture("specular.png");
 	this->ambientTexture.loadTexture("ambient.png");
+	this->particleTexture.loadTexture("particle.png");
 
 	//view port
 	this->viewPort.TopLeftX = 0.0f;
@@ -496,6 +600,7 @@ bool Graphics::init(Window& window)
 
 	//Constantbuffers
 	this->mvpConstantBuffer.createBuffer(sizeof(mvpBufferStruct), sizeof(mvpBuffer), &mvpBufferStruct);
+	this->particleCB.createBuffer(sizeof(particleBufferStruct), sizeof(ParticleBuffer), &particleBufferStruct);
 
 	//Light
 	this->light.init();
@@ -509,9 +614,6 @@ bool Graphics::init(Window& window)
 	this->camera.init();
 
 	//Light Structure buffer
-
-	//Wont change during runtime
-	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	return true;
 

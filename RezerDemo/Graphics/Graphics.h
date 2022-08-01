@@ -11,6 +11,7 @@
 #include "Shaders/VertexShader.h"
 
 #include "Light.h"
+#include "Particle.h"
 
 #include "Mesh.h"
 #include "Texture.h"
@@ -30,6 +31,14 @@ private:
 		DirectX::XMFLOAT4X4 vpMatrix;
 	} mvpBufferStruct{};
 
+	struct ParticleBuffer
+	{
+		DirectX::XMFLOAT4X4 worldMatrix;
+		DirectX::XMFLOAT4X4 vpMatrix;
+		DirectX::XMFLOAT3 cameraPos;
+		float pad;
+	}particleBufferStruct{};
+
 	struct MaterialStruct
 	{
 		DirectX::XMFLOAT4 ambient;
@@ -44,6 +53,7 @@ private:
 	ID3D11DeviceContext* immediateContext = nullptr;
 
 	ID3D11UnorderedAccessView* uavBackBuffer = nullptr;
+	ID3D11RenderTargetView* rtvBackBuffer = nullptr;
 	ID3D11Resource* backBuffer = nullptr;
 	ID3D11UnorderedAccessView* nullUAV = nullptr;
 	ID3D11RenderTargetView* nullRTV = nullptr;
@@ -61,10 +71,16 @@ private:
 	ID3D11Texture2D* dsTexture = nullptr;
 	ID3D11DepthStencilState* dsState = nullptr;
 
+	//Particles
+	ID3D11UnorderedAccessView* particleUav = nullptr;
+
 	//Shaders
 	VertexShader deferred_VS;
 	PixelShader deferred_PS;
 	ID3D11ComputeShader* deffered_CS = nullptr;
+	VertexShader particle_VS;
+	PixelShader particle_PS;
+	ID3D11GeometryShader* particle_GS = nullptr;
 
 	UINT threadX;
 	UINT threadY;
@@ -76,9 +92,10 @@ private:
 	//Light
 	Light light;
 	ID3D11Buffer* cbMaterial = nullptr;
-	
+
 	Texture ambientTexture;
 	Texture specularTexture;
+	Texture particleTexture;
 	
 	//Camera
 	Camera camera;
@@ -88,6 +105,7 @@ private:
 	//Constant buffers
 	ConstantBuffer mvpConstantBuffer;
 	ConstantBuffer materialCB;
+	ConstantBuffer particleCB;
 
 	//Window
 	Window* window;
@@ -95,18 +113,24 @@ private:
 	//Meshes
 	std::vector<Mesh*> meshes;
 
+	//Particles
+	Particle particle;
+
 	//Private help functions
 	bool resourceManagement();
 	bool createDevices();
 	bool defferdInit();
 	bool loadShaders();
 	bool initMeshes();
+	bool initParticles();
 
 	void renderMesh(Mesh& mesh);
+	void rendererParticle(Particle& particle);
 
 	void shadowMap();
 	void geometryPass();
 	void lightPass();
+	void particlePass();
 
 	//Private help variables.
 	float angle = 0;

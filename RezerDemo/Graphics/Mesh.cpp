@@ -316,7 +316,7 @@ void Mesh::calculateNormals(DefaultMesh mesh)
 
 Mesh::Mesh(Graphics& renderer)
 	:vertexBuffer(renderer), indexBuffer(renderer), vertices{}, indices{}, pos(0.0f, 0.0f, -2.0f), rot(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f),
-	worldMatrix(DirectX::SimpleMath::Matrix().Identity), startIndex(0), texture(renderer)
+	worldMatrix(DirectX::SimpleMath::Matrix().Identity), startIndex(0), texture(renderer), ambient(0.3f, 0.3f, 0.3f), specular(1.0f, 1.0f, 1.0f), specularPower(32.0f)
 {
 	this->updateWorldMatrix();
 }
@@ -377,6 +377,13 @@ bool Mesh::createDefualtMesh(DefaultMesh mesh)
 	return true;
 }
 
+void Mesh::setMaterial(DirectX::SimpleMath::Vector3 ambient, DirectX::SimpleMath::Vector3 specular, float specularPower)
+{
+	this->ambient = ambient;
+	this->specular = specular;
+	this->specularPower = specularPower;
+}
+
 bool Mesh::createTexture(std::string file)
 {
 	this->texture.loadTexture(file);
@@ -406,6 +413,11 @@ void Mesh::setStartIndex(unsigned int index)
 
 void Mesh::move()
 {
+}
+
+void Mesh::setSpecularPower(float power)
+{
+	this->specularPower = power;
 }
 
 void Mesh::update()

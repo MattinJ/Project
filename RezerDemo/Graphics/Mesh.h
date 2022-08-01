@@ -55,6 +55,11 @@ private:
 
 	Texture texture;
 
+	//Matrial
+	DirectX::SimpleMath::Vector3  ambient;
+	DirectX::SimpleMath::Vector3  specular;
+	float specularPower;
+
 	void updateWorldMatrix();
 
 	void createTriangle();
@@ -74,6 +79,10 @@ public:
 
 	bool createTexture(std::string file);
 
+	inline DirectX::SimpleMath::Vector3& getAmbient() { return this->ambient; }
+	inline DirectX::SimpleMath::Vector3& getSpecular() { return this->specular; }
+	inline float& getSpevularPower() { return this->specularPower; }
+
 	inline VertexBuffer& getVertexBuffer() { return this->vertexBuffer; }
 	inline IndexBuffer& getIndexBuffer() { return this->indexBuffer; }
 
@@ -84,6 +93,9 @@ public:
 	void setPosition(float x, float y, float z);
 	void setRotation(float x, float y, float z);
 	void setScaling(float x, float y, float z);
+
+	void setMaterial(DirectX::SimpleMath::Vector3 ambient, DirectX::SimpleMath::Vector3 specular, float specularPower);
+	void setSpecularPower(float power);
 
 	void setStartIndex(unsigned int index);
 

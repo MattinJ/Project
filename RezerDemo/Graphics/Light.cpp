@@ -23,7 +23,7 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	}
 	case LightType::SPOT:
 	{
-		light.range = 100.0f;
+		light.range = 20.0f;
 		light.cone = 20.0f;
 		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.0f);
 		light.lightType = 1;
@@ -41,11 +41,11 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
-	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(-0.5f, -1.0f, 0.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.5f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.5f));
+	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(-0.5f, -1.0f, 0.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.5f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.5f));
 	
 	return true;
 }
@@ -177,8 +177,7 @@ bool Light::init()
 		dsvDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 		dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
 		dsvDesc.Texture2DArray.ArraySize = 1;
-		srvDesc.Texture2DArray.FirstArraySlice = UINT(i);
-		srvDesc.Texture2DArray.MipLevels = 1;
+		dsvDesc.Texture2DArray.FirstArraySlice = UINT(i);
 
 		//Create depth stencil view
 		hr = this->graphic.getDevice()->CreateDepthStencilView(this->shadowMapDepthTexture, &dsvDesc, &this->shadowMapDSV[i]);
@@ -255,7 +254,6 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 
 		//Set null srv
 		ID3D11ShaderResourceView* nullSRV[]{ nullptr };
-
 		this->graphic.getDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
 
 		//Go over all meshes
