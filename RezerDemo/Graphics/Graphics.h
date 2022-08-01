@@ -118,7 +118,7 @@ private:
 
 	//Private help functions
 	bool resourceManagement();
-	bool createDevices();
+	bool createViews();
 	bool defferdInit();
 	bool loadShaders();
 	bool initMeshes();

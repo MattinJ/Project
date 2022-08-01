@@ -116,7 +116,7 @@ bool Graphics::loadShaders()
 	return true;
 }
 
-bool Graphics::createDevices()
+bool Graphics::createViews()
 {
 	HRESULT hr;
 
@@ -229,9 +229,13 @@ void Graphics::geometryPass()
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 	this->rendererParticle(this->particle);
 	
+	//Unbind rtv backbuffer
+	this->immediateContext->OMSetRenderTargets(1, &this->nullRTV, this->dsv);
+
 	//Set renderer targets
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	
 	//Meshes
 	for (size_t i = 0; i < this->meshes.size(); i++)
 	{
@@ -525,7 +529,6 @@ void Graphics::rendererParticle(Particle& particle)
 	this->immediateContext->PSSetSamplers(0, 1, &nullSampler);
 	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
 	this->immediateContext->GSSetShader(nullptr, nullptr, 0);
-	this->immediateContext->OMSetRenderTargets(1, &this->nullRTV, this->dsv);
 }
 
 void Graphics::lightPass()
@@ -581,7 +584,7 @@ bool Graphics::init(Window& window)
 	this->initParticles();
 	this->initMeshes();
 
-	this->createDevices();
+	this->createViews();
 	this->defferdInit();
 	this->loadShaders();
 
