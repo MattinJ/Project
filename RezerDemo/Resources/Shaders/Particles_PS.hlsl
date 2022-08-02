@@ -12,7 +12,7 @@ float4 main(Input input) : SV_TARGET
 {
     float4 color = objTexture.Sample(objSamplerState, input.uv);
     
-    clip(color.r > 0.0);
+    clip(color.r - 1.0);
     
     return color;
     //return float4(1.0f, 0.0f, 0.0f, 1.0f);

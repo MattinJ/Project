@@ -12,10 +12,9 @@ struct Output
 
 cbuffer cbuf
 {   
-    matrix worldMatrix;
     matrix vpMatrix;
     float3 cameraPosition;
-    float pad;
+    float deltaTime;
 };
 
 const static int nrOfVert = 6;
@@ -23,7 +22,7 @@ const static int nrOfVert = 6;
 [maxvertexcount(nrOfVert)]
 void main(point Input input[1], inout TriangleStream<Output> outputStream)
 {
-    const static float SIZE = 0.25f;
+    const static float SIZE = 0.10f;
 	
     //Calculate the direction
     float3 normalVector = normalize(cameraPosition - input[0].postion.xyz);
@@ -31,8 +30,8 @@ void main(point Input input[1], inout TriangleStream<Output> outputStream)
     float3 rightVector = normalize(cross(normalVector, float3(0.0f, 1.0f, 0.0f)));
     float3 upVector = cross(rightVector, normalVector);
     
-    //rightVector = rightVector * SIZE;
-    //upVector = upVector * SIZE;
+    rightVector = rightVector * SIZE;
+    upVector = upVector * SIZE;
         
     //Add dots so it form a quad.
     float3 vert[nrOfVert];
@@ -48,8 +47,11 @@ void main(point Input input[1], inout TriangleStream<Output> outputStream)
     float2 uv[nrOfVert];
     uv[0] = float2(0, 1);
     uv[1] = float2(0, 0);
-    uv[2] = float2(1, 0);
-    uv[3] = float2(1, 1);
+    uv[2] = float2(1, 1);
+    
+    uv[3] = float2(0, 0);
+    uv[4] = float2(1, 0);
+    uv[5] = float2(1, 1);
     
     //Set and append
     Output output;

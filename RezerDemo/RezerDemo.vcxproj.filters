@@ -84,7 +84,7 @@
     <ClInclude Include="Graphics\CubeMap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics\Particle.h">
+    <ClInclude Include="Graphics\ParticleSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -155,7 +155,7 @@
     <ClCompile Include="Graphics\CubeMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics\Particle.cpp">
+    <ClCompile Include="Graphics\ParticleSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -173,5 +173,6 @@
     <FxCompile Include="Resources\Shaders\Particles_VS.hlsl" />
     <FxCompile Include="Resources\Shaders\Particles_PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Deferred_CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Particles_CS.hlsl" />
   </ItemGroup>
 </Project>
