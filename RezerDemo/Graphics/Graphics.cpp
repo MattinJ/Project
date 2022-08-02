@@ -222,16 +222,6 @@ void Graphics::shadowMap()
 
 void Graphics::geometryPass()
 {
-	//Set rtv backbuffer
-	this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
-
-	//Particles
-	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-	this->rendererParticle(this->particle);
-	
-	//Unbind rtv backbuffer
-	this->immediateContext->OMSetRenderTargets(1, &this->nullRTV, this->dsv);
-
 	//Set renderer targets
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -315,6 +305,13 @@ void Graphics::render()
 
 	//Light pass
 	this->lightPass();
+
+	//Set rtv backbuffer
+	this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
+
+	//Particles
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+	this->rendererParticle(this->particle);
 
 	//Unbind rtv
 	this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);

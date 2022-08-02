@@ -43,21 +43,13 @@ void main(point Input input[1], inout TriangleStream<Output> outputStream)
     vert[3] = input[0].postion.xyz - rightVector + upVector; //Top left
     vert[4] = input[0].postion.xyz + rightVector + upVector; //Top right
     vert[5] = input[0].postion.xyz + rightVector - upVector; //Bottom right
-    
-    //vert[0] = input[0].postion.xyz = float3(-0.5f, -0.5f, 0.0f); //Bottom left
-    //vert[1] = input[0].postion.xyz = float3(-0.5f, 0.5f, 0.0f); //Top left
-    //vert[2] = input[0].postion.xyz = float3(0.5f, -0.5f, 0.0f); //Bottom right
-    
-    //vert[3] = input[0].postion.xyz = float3(-0.5f, 0.5f, 0.0f); //top left
-    //vert[4] = input[0].postion.xyz = float3(0.5f, 0.5f, 0.0f); //Bottom right
-    //vert[5] = input[0].postion.xyz = float3(-0.5f, -0.5f, 0.0f); //Bottom left
-    
+      
     //Texture uv
     float2 uv[nrOfVert];
     uv[0] = float2(0, 1);
     uv[1] = float2(0, 0);
-    uv[2] = float2(1, 1);
-    //uv[3] = float2(1, 0);
+    uv[2] = float2(1, 0);
+    uv[3] = float2(1, 1);
     
     //Set and append
     Output output;

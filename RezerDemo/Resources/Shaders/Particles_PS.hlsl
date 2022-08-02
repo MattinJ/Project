@@ -10,7 +10,10 @@ Texture2D objTexture : register(t0);
 
 float4 main(Input input) : SV_TARGET
 {
-    //float4 color = objTexture.Sample(objSamplerState, input.uv);
+    float4 color = objTexture.Sample(objSamplerState, input.uv);
     
-    return float4(1.0f, 0.0f, 0.0f, 1.0f);
+    clip(color.r > 0.0);
+    
+    return color;
+    //return float4(1.0f, 0.0f, 0.0f, 1.0f);
 }
