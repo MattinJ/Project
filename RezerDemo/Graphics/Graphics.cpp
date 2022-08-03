@@ -613,10 +613,12 @@ void Graphics::renderCubeMapTexture()
 		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
 		this->immediateContext->CSSetUnorderedAccessViews(1, 1, &this->nullUAV, nullptr);
 
-		//Set rtv backbuffer
-		this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
+	
 
-		//Particles
+		//------------------- Particles -------------------
+
+		//Set rtv backbuffer
+		this->immediateContext->OMSetRenderTargets(1, &this->cubemap.getRTV(i), this->dsv);
 		this->particleSystem.render(this->camera);
 
 		//Unbind rtv

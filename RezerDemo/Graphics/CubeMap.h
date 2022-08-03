@@ -20,6 +20,7 @@ private:
 	ID3D11Texture2D* texture;
 	ID3D11UnorderedAccessView* uav;
 	ID3D11ShaderResourceView* srv;
+	ID3D11RenderTargetView* rtvArray[VIEW_SIZE];
 	D3D11_VIEWPORT vp;
 
 	Graphics& graphic;
@@ -46,6 +47,8 @@ public:
 	inline ID3D11UnorderedAccessView*& getUAV(int index) { return this->uav; }
 	inline ID3D11ShaderResourceView*& getSRV() { return this->srv; }
 	inline D3D11_VIEWPORT& getVP() { return this->vp; }
+
+	inline ID3D11RenderTargetView*& getRTV(int index) { return this->rtvArray[index]; }
 
 	inline DirectX::SimpleMath::Matrix& getVPMatrix(int index) { return this->viewMatrix[index]; }
 

@@ -31,7 +31,12 @@ CubeMap::CubeMap(Graphics& graphic)
 	:graphic(graphic),texture(nullptr), uav(nullptr), textureSize(512), position(0.0f, 0.0f, 0.0f), pixelShader(graphic), vertexShader(graphic),
 	mesh(graphic), srv(nullptr), vp()
 {
-	
+	for (int i = 0; i < VIEW_SIZE; i++)
+	{
+		this->rtvArray[i] = nullptr;
+	}
+
+
 }
 
 CubeMap::~CubeMap()
@@ -45,6 +50,11 @@ CubeMap::~CubeMap()
 
 	if (this->uav != nullptr)
 		this->uav->Release();
+
+	for (int i = 0; i < VIEW_SIZE; i++)
+	{
+		this->rtvArray[i]->Release();
+	}
 }
 
 bool CubeMap::init()
@@ -67,7 +77,7 @@ bool CubeMap::init()
 	textureDesc.SampleDesc.Quality = 0;
 
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
@@ -104,6 +114,25 @@ bool CubeMap::init()
 		ErrorLogger::errorMessage("Failed to create cubemap SRV.");
 		return false;
 	}
+
+	//RTV
+
+	for (int i = 0; i < VIEW_SIZE; i++)
+	{
+		D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+		rtvDesc.Format = textureDesc.Format;
+		rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
+		rtvDesc.Texture2DArray.ArraySize = 1;
+		rtvDesc.Texture2DArray.FirstArraySlice = (UINT)i;
+
+		this->graphic.getDevice()->CreateRenderTargetView(this->texture, &rtvDesc, &this->rtvArray[i]);
+		if (FAILED(hr))
+		{
+			ErrorLogger::errorMessage("Failed to create cubemap RTV.");
+			return false;
+		}
+	}
+
 
 	this->vp.TopLeftX = 0;
 	this->vp.TopLeftY = 0;

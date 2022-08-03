@@ -160,21 +160,21 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resources\Shaders\Deferred_VS.hlsl">
+    <FxCompile Include="Resources\Shaders\Deferred\Deferred_VS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
-    <FxCompile Include="Resources\Shaders\Deferred_PS.hlsl">
+    <FxCompile Include="Resources\Shaders\Deferred\Deferred_PS.hlsl">
       <Filter>Resource Files</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Defualt_VS.hlsl" />
     <FxCompile Include="Resources\Shaders\Default_PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\ShadowMap_VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Patricles_GS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Particles_VS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Particles_PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Deferred_CS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Particles_CS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Cubemap_PS.hlsl" />
-    <FxCompile Include="Resources\Shaders\Cubemap_VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Deferred\ShadowMap_VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Particles\Patricles_GS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Particles\Particles_VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Particles\Particles_PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Deferred\Deferred_CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Particles\Particles_CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_VS.hlsl" />
   </ItemGroup>
 </Project>
