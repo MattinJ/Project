@@ -22,6 +22,7 @@ private:
 		float x;
 		float y;
 		float z;
+		float fallspeed;
 	} particleVertex{};
 
 	struct ParticleSystemBuffer
@@ -29,13 +30,17 @@ private:
 		DirectX::XMFLOAT4X4 vpMatrix;
 		DirectX::XMFLOAT3 cameraPos;
 		float pad;
-	}particleSystemStruct{};
+	} particleSystemStruct{};
 
 	struct ParticleBuffer
 	{
 		DirectX::XMFLOAT3 startPosition;
+		float pad1;
 		float deltaTime;
-	}particleStruct{};
+		float time;
+		float speed;
+		float pad2;
+	} particleStruct{};
 
 	Graphics& graphic;
 	
@@ -61,6 +66,7 @@ private:
 	ID3D11ComputeShader* particle_CS = nullptr;
 	
 	int nrOfPartciles = 64;
+	float speed = 0.1;
 
 	Texture particleTexture;
 

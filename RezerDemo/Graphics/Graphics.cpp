@@ -259,9 +259,9 @@ void Graphics::render()
 
 	//Update
 	this->particleSystem.update();
+	this->camera.update();
 	
 	//Cubemap
-	this->camera.update();
 	this->renderCubeMapTexture();
 
 	//Update camera

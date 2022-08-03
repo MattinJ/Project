@@ -26,11 +26,11 @@ bool ParticleSystem::initBuffers()
 	bufferDesc.StructureByteStride = 0;
 
 	D3D11_SUBRESOURCE_DATA subData = {};
-	subData.pSysMem = &this->particles;
+	subData.pSysMem = &this->particles[0];
 	subData.SysMemPitch = 0;
 	subData.SysMemSlicePitch = 0;
 
-	HRESULT hr = this->graphic.getDevice()->CreateBuffer(&bufferDesc, nullptr, &this->vertexBuffer);
+	HRESULT hr = this->graphic.getDevice()->CreateBuffer(&bufferDesc, &subData, &this->vertexBuffer);
 
 	if (FAILED(hr))
 	{
@@ -43,7 +43,7 @@ bool ParticleSystem::initBuffers()
 	uavDesc.Format = DXGI_FORMAT_R32_FLOAT;
 	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 	uavDesc.Buffer.FirstElement = 0;
-	uavDesc.Buffer.NumElements = this->nrOfPartciles * 3;
+	uavDesc.Buffer.NumElements = this->nrOfPartciles * 4;
 	uavDesc.Buffer.Flags = 0;
 
 	hr = this->graphic.getDevice()->CreateUnorderedAccessView(this->vertexBuffer, &uavDesc, &this->uav);
@@ -105,9 +105,15 @@ bool ParticleSystem::initShaders()
 
 void ParticleSystem::initParticle()
 {
-	for (int i = 0; i < nrOfPartciles; i++)
+	for (int i = 0; i < this->nrOfPartciles; i++)
 	{
-		Vertex point = { this->startPosition.x, this->startPosition.y, this->startPosition.z };
+		float randomX = (float)(-1000 + (std::rand() % 2000)) * 0.01;
+		float randomY = (float)(2000 + (std::rand() % 1000)) * 0.01;
+		float randomZ = (float)(-1000 + (std::rand() % 2000)) * 0.01;
+
+		float fallSpeed = (float)(1000 + (std::rand() % 2000)) * 0.0001;
+		
+		Vertex point = { randomX, randomY, randomZ, fallSpeed};
 		particles.push_back(point);
 	}
 }
@@ -206,11 +212,11 @@ void ParticleSystem::render(Camera& camera)
 
 void ParticleSystem::update()
 {
-	//Set consant buffers
-	this->particleStruct.deltaTime = this->time;
-	particleStruct.startPosition = this->startPosition;
-	this->particleCB.updateBuffer(&particleStruct);
+	this->particleStruct.deltaTime = Time::getDT();
+	this->particleStruct.speed = this->speed;
+	this->particleStruct.time = this->time;
 	this->time += 0.1;
+	this->particleCB.updateBuffer(&this->particleStruct);
 }
 
 void ParticleSystem::setStartPosition(DirectX::SimpleMath::Vector3 pos)
