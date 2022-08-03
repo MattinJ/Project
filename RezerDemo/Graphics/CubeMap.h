@@ -2,55 +2,57 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <SimpleMath.h>
+#include "Mesh.h"
 
-const int BUFFER_SIZE = 6;
-const int TEXTURE_SIZE = 512;
+#include "Shaders/PixelShader.h"
+#include "Shaders/VertexShader.h"
+#include "Shaders/InputLayoutDesc.h"
+
+const int VIEW_SIZE = 6;
 
 class Graphics;
 
 class CubeMap
 {
 private:
-	struct CubeMapBuffer
-	{
-		DirectX::XMFLOAT4X4 viewMatrix;
-		DirectX::XMFLOAT4X4 projectionMatrix;
-	} cubeStruct{};
+	DirectX::SimpleMath::Matrix viewMatrix[VIEW_SIZE];
 
-	DirectX::SimpleMath::Matrix viewMatrix;
-	DirectX::SimpleMath::Matrix projectionMatrix;
-	
-	ID3D11Texture2D* textureArray[BUFFER_SIZE];
-	ID3D11RenderTargetView* rtvArray[BUFFER_SIZE];
-	ID3D11ShaderResourceView* srvArray[BUFFER_SIZE];
-	D3D11_VIEWPORT viewPort;
-
-	ID3D11DepthStencilView* dsv;
-	ID3D11DepthStencilState* dss;
-	ID3D11Texture2D* dsTexture;
+	ID3D11Texture2D* texture;
+	ID3D11UnorderedAccessView* uav[VIEW_SIZE];
+	ID3D11ShaderResourceView* srv;
+	D3D11_VIEWPORT vp;
 
 	Graphics& graphic;
 
+	PixelShader pixelShader;
+	VertexShader vertexShader;
+
+	UINT textureSize;
+
+	Mesh mesh;
+
 	DirectX::SimpleMath::Vector3 position;
-	DirectX::SimpleMath::Vector3 target;
-	DirectX::SimpleMath::Vector3 upDir;
 
-
+	void initVPmatrix();
+	void initShaders();
 
 public:
 	CubeMap(Graphics& graphic);
 	~CubeMap();
 
-	void setPosition(DirectX::SimpleMath::Vector3 pos);
-	void setTarget(DirectX::SimpleMath::Vector3 target);
-	void setDir(DirectX::SimpleMath::Vector3 dir);
-
-	inline DirectX::SimpleMath::Vector3& getPosition() { return this->position; }
-	inline DirectX::SimpleMath::Vector3& getTarget() { return this->target; }
-	inline DirectX::SimpleMath::Vector3& getUpDir() { return this->upDir; }
-
 	bool init();
-	void render();
+
+	inline ID3D11Texture2D*& getTexture() { return this->texture; }
+	inline ID3D11UnorderedAccessView*& getUAV(int index) { return this->uav[index]; }
+	inline ID3D11ShaderResourceView*& getSRV() { return this->srv; }
+	inline D3D11_VIEWPORT& getVP() { return this->vp; }
+
+	inline DirectX::SimpleMath::Matrix& getVPMatrix(int index) { return this->viewMatrix[index]; }
+
+	inline PixelShader& getPixelShader() { return this->pixelShader; }
+	inline VertexShader& getVertexShader() { return this->vertexShader; }
+
+	inline Mesh& getMesh() { return this->mesh; }
 
 };
 

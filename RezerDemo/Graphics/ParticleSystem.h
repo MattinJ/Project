@@ -77,6 +77,7 @@ public:
 
 	void init();
 	void render(Camera& camera);
+	void update();
 
 	void setStartPosition(DirectX::SimpleMath::Vector3 pos);
 

@@ -157,12 +157,7 @@ void ParticleSystem::render(Camera& camera)
 	immediateContext->CSSetShader(this->particle_CS, nullptr, 0);
 	immediateContext->CSSetUnorderedAccessViews(0, 1, &this->uav, nullptr);
 
-	//Set consant buffers
-	this->particleStruct.deltaTime = this->time;
-	particleStruct.startPosition = this->startPosition;
-	this->particleCB.updateBuffer(&particleStruct);
 	immediateContext->CSSetConstantBuffers(0, 1, &this->particleCB.getBuffer());
-	this->time += 0.1;
 
 	//Run
 	immediateContext->Dispatch(this->nrOfPartciles / 32, 1, 1);
@@ -207,6 +202,15 @@ void ParticleSystem::render(Camera& camera)
 	immediateContext->PSSetSamplers(0, 1, &nullSampler);
 	immediateContext->PSSetShaderResources(0, 1, &nullSRV);
 	immediateContext->GSSetShader(nullptr, nullptr, 0);
+}
+
+void ParticleSystem::update()
+{
+	//Set consant buffers
+	this->particleStruct.deltaTime = this->time;
+	particleStruct.startPosition = this->startPosition;
+	this->particleCB.updateBuffer(&particleStruct);
+	this->time += 0.1;
 }
 
 void ParticleSystem::setStartPosition(DirectX::SimpleMath::Vector3 pos)

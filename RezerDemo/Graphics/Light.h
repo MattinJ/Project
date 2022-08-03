@@ -40,8 +40,6 @@ private:
 		int lightType;
 	};
 
-
-
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 

@@ -200,14 +200,14 @@ void Graphics::geometryPass()
 	for (size_t i = 0; i < this->meshes.size(); i++)
 	{
 		this->renderMesh(*this->meshes[i]);
-	}	
+	}
 }
 
 Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this)
+	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -257,6 +257,12 @@ void Graphics::render()
 	}
 	this->immediateContext->ClearDepthStencilView(this->dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
+	//Update
+	this->particleSystem.update();
+	
+	//Cubemap
+	this->renderCubeMapTexture();
+
 	//Update camera
 	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
 	this->mvpBufferStruct.vpMatrix = vp.Transpose();
@@ -269,6 +275,9 @@ void Graphics::render()
 	
 	//Geomentry Pass
 	this->geometryPass();
+
+	//Cubemap mesh
+	this->renderCubeMap(this->cubemap.getMesh());
 
 	//Light pass
 	this->lightPass();
@@ -296,31 +305,31 @@ bool Graphics::initMeshes()
 
 	Mesh* sphereMesh = new Mesh(*this);
 	sphereMesh->createDefualtMesh(DefaultMesh::SPHERE);
-	sphereMesh->createTexture("texture3d.jpg");
-	sphereMesh->setPosition(0.0f, 0.0f, 0.0f);
+	sphereMesh->createTexture("lavarock.jpg");
+	sphereMesh->setPosition(0.0f, 5.0f, 0.0f);
 	this->meshes.push_back(sphereMesh);
 
 	Mesh* cubeMesh = new Mesh(*this);
 	cubeMesh->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh->createTexture("texture3d.jpg");
+	cubeMesh->createTexture("texture3d_blue.png");
 	cubeMesh->setPosition(3.0f, 0.0f, 0.0f);
 	this->meshes.push_back(cubeMesh);
 
 	Mesh* cubeMesh2 = new Mesh(*this);
 	cubeMesh2->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh2->createTexture("texture3d.jpg");
+	cubeMesh2->createTexture("texture3d_green.png");
 	cubeMesh2->setPosition(-3.0f, 0.0f, 0.0f);
 	this->meshes.push_back(cubeMesh2);
 
 	Mesh* cubeMesh3 = new Mesh(*this);
 	cubeMesh3->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh3->createTexture("texture3d.jpg");
+	cubeMesh3->createTexture("texture3d_purple.png");
 	cubeMesh3->setPosition(0.0f, 0.0f, -3.0f);
 	this->meshes.push_back(cubeMesh3);
 
 	Mesh* cubeMesh4 = new Mesh(*this);
 	cubeMesh4->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh4->createTexture("texture3d.jpg");
+	cubeMesh4->createTexture("texture3d_yellow.png");
 	cubeMesh4->setPosition(0.0f, 0.0f, 3.0f);
 	this->meshes.push_back(cubeMesh4);
 
@@ -446,6 +455,55 @@ void Graphics::renderMesh(Mesh& mesh)
 	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
 }
 
+void Graphics::renderCubeMap(Mesh& mesh)
+{
+	//Update mesh first
+	mesh.update();
+
+	//Set input layout and vertex shader
+	this->immediateContext->IASetInputLayout(this->cubemap.getVertexShader().getInputLayout());
+	this->immediateContext->VSSetShader(this->cubemap.getVertexShader().getVS(), nullptr, 0);
+
+	//Set pixel shader
+	this->immediateContext->PSSetShader(this->cubemap.getPixelShader().getPS(), nullptr, 0);
+
+	//Set mvp matrix
+	DirectX::SimpleMath::Matrix m = mesh.getWorldMatrix();
+	this->mvpBufferStruct.worldMatrix = m.Transpose();
+	this->mvpConstantBuffer.updateBuffer(&this->mvpBufferStruct);
+
+	//Set vertex/index buffer
+	this->immediateContext->IASetVertexBuffers(
+		0, 1, &mesh.getVertexBuffer().getBuffer(), &mesh.getVertexBuffer().getStride(), &mesh.getVertexBuffer().getOffset()
+	);
+
+	this->immediateContext->IASetIndexBuffer(
+		mesh.getIndexBuffer().getBuffer(), DXGI_FORMAT_R32_UINT, 0
+	);
+
+	//Set vertex shader CB
+	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
+
+	//Set Sampler and textures
+	this->immediateContext->PSSetSamplers(0, 1, &mesh.getTexture().getSamplerState());
+
+	this->immediateContext->PSSetShaderResources(0, 1, &this->cubemap.getSRV());
+	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
+	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
+
+	//Draw
+	this->immediateContext->DrawIndexed(
+		mesh.getIndices().size(), 0, 0
+	);
+
+	//rebind sampler
+	ID3D11SamplerState* nullSampler = nullptr;
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+
+	this->immediateContext->PSSetSamplers(0, 1, &nullSampler);
+	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
+}
+
 void Graphics::lightPass()
 {
 	//Clear renderer target view
@@ -492,6 +550,76 @@ void Graphics::particlePass()
 	
 }
 
+void Graphics::renderCubeMapTexture()
+{
+	for (int i = 0; i < 6; i++)
+	{
+		//Clear screen.
+		const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+		for (int i = 0; i < BUFFER_COUNT; i++)
+		{
+			this->immediateContext->ClearRenderTargetView(this->rtvArray[i], clearColor);
+		}
+		this->immediateContext->ClearDepthStencilView(this->dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+		
+		//Update camera
+		DirectX::SimpleMath::Matrix vp = this->cubemap.getVPMatrix(i) * this->camera.getProjectionMatrix();
+		this->mvpBufferStruct.vpMatrix = vp.Transpose();
+
+		this->shadowMap();
+
+		//Set viewport
+		this->immediateContext->RSSetViewports(1, &this->cubemap.getVP());
+		
+		//Geomentry Pass
+		this->geometryPass();
+
+		//--------------------- Light pass ----------------------
+		//Clear renderer target view
+		this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->nullRTVarray, nullptr);
+
+		//Set compute shader
+		this->immediateContext->CSSetShader(this->deffered_CS, nullptr, 0);
+
+		//Set UAV
+		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->cubemap.getUAV(i), nullptr);
+
+		//Bind structure buffer
+		this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
+
+		//Shadow map
+		this->immediateContext->CSSetShaderResources(1, 1, &this->light.getShadowMapSRV());
+
+		//Set gBuffers
+		this->immediateContext->CSSetShaderResources(2, (UINT)BUFFER_COUNT, this->srvArray);
+
+		//Set constant buffers
+		this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
+
+		//Material
+		this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
+		this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
+
+		//Dispatch
+		this->immediateContext->Dispatch(this->threadX, this->threadY, this->threadZ);
+
+		//Reset
+		this->immediateContext->CSSetShader(nullptr, nullptr, 0);
+		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
+
+		//Set rtv backbuffer
+		this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
+
+		//Particles
+		this->particleSystem.render(this->camera);
+
+		//Unbind rtv
+		this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);
+	}
+
+}
+
 bool Graphics::init(Window& window)
 {
 	this->window = &window;
@@ -520,6 +648,9 @@ bool Graphics::init(Window& window)
 
 	//Light
 	this->light.init();
+
+	//Cubemap
+	this->cubemap.init();
 
 	//ParticleSystem
 	this->particleSystem.setStartPosition(Vector3(6.0f, 1.0f, 1.0f));

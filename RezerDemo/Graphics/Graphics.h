@@ -12,6 +12,7 @@
 
 #include "Light.h"
 #include "ParticleSystem.h"
+#include "CubeMap.h"
 
 #include "Mesh.h"
 #include "Texture.h"
@@ -79,8 +80,11 @@ private:
 	Light light;
 	ID3D11Buffer* cbMaterial = nullptr;
 
+	//Textures
 	Texture ambientTexture;
 	Texture specularTexture;
+
+	CubeMap cubemap;
 
 	//Camera
 	Camera camera;
@@ -108,11 +112,13 @@ private:
 	bool initMeshes();
 
 	void renderMesh(Mesh& mesh);
+	void renderCubeMap(Mesh& mesh);
 
 	void shadowMap();
 	void geometryPass();
 	void lightPass();
 	void particlePass();
+	void renderCubeMapTexture();
 
 	//Private help variables.
 	float angle = 0;

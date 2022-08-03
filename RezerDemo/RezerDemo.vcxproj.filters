@@ -174,5 +174,7 @@
     <FxCompile Include="Resources\Shaders\Particles_PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Deferred_CS.hlsl" />
     <FxCompile Include="Resources\Shaders\Particles_CS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Cubemap_PS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Cubemap_VS.hlsl" />
   </ItemGroup>
 </Project>
