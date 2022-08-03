@@ -14,11 +14,11 @@ class Graphics;
 
 class CubeMap
 {
-private:
+private:	
 	DirectX::SimpleMath::Matrix viewMatrix[VIEW_SIZE];
 
 	ID3D11Texture2D* texture;
-	ID3D11UnorderedAccessView* uav[VIEW_SIZE];
+	ID3D11UnorderedAccessView* uav;
 	ID3D11ShaderResourceView* srv;
 	D3D11_VIEWPORT vp;
 
@@ -33,7 +33,7 @@ private:
 
 	DirectX::SimpleMath::Vector3 position;
 
-	void initVPmatrix();
+	void initVP();
 	void initShaders();
 
 public:
@@ -43,7 +43,7 @@ public:
 	bool init();
 
 	inline ID3D11Texture2D*& getTexture() { return this->texture; }
-	inline ID3D11UnorderedAccessView*& getUAV(int index) { return this->uav[index]; }
+	inline ID3D11UnorderedAccessView*& getUAV(int index) { return this->uav; }
 	inline ID3D11ShaderResourceView*& getSRV() { return this->srv; }
 	inline D3D11_VIEWPORT& getVP() { return this->vp; }
 

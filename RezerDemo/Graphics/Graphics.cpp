@@ -205,7 +205,7 @@ void Graphics::geometryPass()
 
 Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
-	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this),
+	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
 	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this)
 {
@@ -261,11 +261,13 @@ void Graphics::render()
 	this->particleSystem.update();
 	
 	//Cubemap
+	this->camera.update();
 	this->renderCubeMapTexture();
 
 	//Update camera
 	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
 	this->mvpBufferStruct.vpMatrix = vp.Transpose();
+
 
 	//Shadow map
 	this->shadowMap();
@@ -306,13 +308,13 @@ bool Graphics::initMeshes()
 	Mesh* sphereMesh = new Mesh(*this);
 	sphereMesh->createDefualtMesh(DefaultMesh::SPHERE);
 	sphereMesh->createTexture("lavarock.jpg");
-	sphereMesh->setPosition(0.0f, 5.0f, 0.0f);
+	sphereMesh->setPosition(3.0f, 0.0f, 0.0f);
 	this->meshes.push_back(sphereMesh);
 
 	Mesh* cubeMesh = new Mesh(*this);
 	cubeMesh->createDefualtMesh(DefaultMesh::CUBE);
 	cubeMesh->createTexture("texture3d_blue.png");
-	cubeMesh->setPosition(3.0f, 0.0f, 0.0f);
+	cubeMesh->setPosition(0.0f, 5.0f, 0.0f);
 	this->meshes.push_back(cubeMesh);
 
 	Mesh* cubeMesh2 = new Mesh(*this);
@@ -533,7 +535,6 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
 
 	//Camera
-	this->camera.update();
 	this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
 
 	//Dispatch
@@ -542,12 +543,6 @@ void Graphics::lightPass()
 	//Reset
 	this->immediateContext->CSSetShader(nullptr, nullptr, 0);
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
-}
-
-void Graphics::particlePass()
-{
-	
-	
 }
 
 void Graphics::renderCubeMapTexture()
@@ -583,7 +578,7 @@ void Graphics::renderCubeMapTexture()
 		this->immediateContext->CSSetShader(this->deffered_CS, nullptr, 0);
 
 		//Set UAV
-		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->cubemap.getUAV(i), nullptr);
+		this->immediateContext->CSSetUnorderedAccessViews(1, 1, &this->cubemap.getUAV(i), nullptr);
 
 		//Bind structure buffer
 		this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
@@ -601,12 +596,22 @@ void Graphics::renderCubeMapTexture()
 		this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
 		this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
 
+		//Camera
+		this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
+
+		//Cubemap cb
+		this->cubemapStruct.index = i;
+		this->cubemapCB.updateBuffer(&cubemapStruct);
+		//this->cubemapCB.createBuffer(sizeof(this->cubemapStruct), sizeof(CubeMapBuffer), &this->cubemapStruct);
+		this->immediateContext->CSSetConstantBuffers(3, 1, &this->cubemapCB.getBuffer());
+
 		//Dispatch
 		this->immediateContext->Dispatch(this->threadX, this->threadY, this->threadZ);
 
 		//Reset
 		this->immediateContext->CSSetShader(nullptr, nullptr, 0);
 		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
+		this->immediateContext->CSSetUnorderedAccessViews(1, 1, &this->nullUAV, nullptr);
 
 		//Set rtv backbuffer
 		this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
@@ -645,6 +650,7 @@ bool Graphics::init(Window& window)
 
 	//Constantbuffers
 	this->mvpConstantBuffer.createBuffer(sizeof(mvpBufferStruct), sizeof(mvpBuffer), &mvpBufferStruct);
+	this->cubemapCB.createBuffer(sizeof(cubemapStruct), sizeof(CubeMapBuffer), &cubemapStruct);
 
 	//Light
 	this->light.init();
@@ -653,7 +659,7 @@ bool Graphics::init(Window& window)
 	this->cubemap.init();
 
 	//ParticleSystem
-	this->particleSystem.setStartPosition(Vector3(6.0f, 1.0f, 1.0f));
+	this->particleSystem.setStartPosition(Vector3(0.0f, 0.0f, 0.0f));
 	this->particleSystem.init();
 
 	//Light material

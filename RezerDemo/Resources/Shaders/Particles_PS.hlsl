@@ -5,8 +5,16 @@ struct Input
     float2 uv : UV;
 };
 
+cbuffer cubemapBuffer : register(b0)
+{
+    int cubeIndex;
+    float3 pad3;
+}
+
 SamplerState objSamplerState : register(s0);
-Texture2D objTexture : register(t0); 
+Texture2D objTexture : register(t0);
+
+RWTexture2DArray<unorm float4> cubeMap : register(u0);
 
 float4 main(Input input) : SV_TARGET
 {

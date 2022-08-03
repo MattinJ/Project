@@ -30,6 +30,12 @@ cbuffer camera : register(b2)
     float pad;
 };
 
+cbuffer cubemapCb : register(b3)
+{
+    int cubeIndex;
+    float3 pad3;
+}
+
 
 StructuredBuffer<LightBuffer> buffer : register(t0);
 
@@ -46,6 +52,7 @@ Texture2D<float4> specular : register(t7);
 
 //UAV
 RWTexture2D<unorm float4> output : register(u0);
+RWTexture2DArray<unorm float4> cubeMap : register(u1);
 
 //Group size
 #define size_x 32
@@ -164,6 +171,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
     
     output[DTid.xy] = saturate(ambientColor + lightColor);
+    cubeMap[float3(DTid.xy, cubeIndex)] = saturate(ambientColor + lightColor);
     //output[DTid.xy] = diffuse[DTid.xy];
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[1].lightPos, 1.0f);

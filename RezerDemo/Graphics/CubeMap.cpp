@@ -5,14 +5,14 @@
 
 using namespace DirectX::SimpleMath;
 
-void CubeMap::initVPmatrix()
+void CubeMap::initVP()
 {
-	this->viewMatrix[0] = Matrix::CreateLookAt(this->position, Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// +X
-	this->viewMatrix[1] = Matrix::CreateLookAt(this->position, Vector3(-1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// -X
-	this->viewMatrix[2] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// +Y
-	this->viewMatrix[3] = Matrix::CreateLookAt(this->position, Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// -Y
-	this->viewMatrix[4] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f));		// +Z
-	this->viewMatrix[5] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f));		// -Z
+	this->viewMatrix[0] = Matrix::CreateLookAt(this->position, Vector3(-1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// +X
+	this->viewMatrix[1] = Matrix::CreateLookAt(this->position, Vector3(1.0f, 0.0f, 0.0f), Vector3(0.0f, 1.0f, 0.0f));		// -X
+	this->viewMatrix[2] = Matrix::CreateLookAt(this->position, Vector3(0.0f, -1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f));		// +Y
+	this->viewMatrix[3] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 1.0f, 0.0f), Vector3(1.0f, 0.0f, 0.0f));		// -Y
+	this->viewMatrix[4] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 1.0f, 0.0f));		// +Z
+	this->viewMatrix[5] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f));		// -Z
 }
 
 void CubeMap::initShaders()
@@ -28,13 +28,10 @@ void CubeMap::initShaders()
 }
 
 CubeMap::CubeMap(Graphics& graphic)
-	:graphic(graphic),texture(nullptr), textureSize(512), position(0.0f, 0.0f, 0.0f), pixelShader(graphic), vertexShader(graphic), 
+	:graphic(graphic),texture(nullptr), uav(nullptr), textureSize(512), position(0.0f, 0.0f, 0.0f), pixelShader(graphic), vertexShader(graphic),
 	mesh(graphic), srv(nullptr), vp()
 {
-	for (int i = 0; i < VIEW_SIZE; i++)
-	{
-		this->uav[i] = nullptr;
-	}
+	
 }
 
 CubeMap::~CubeMap()
@@ -46,16 +43,13 @@ CubeMap::~CubeMap()
 	if (this->srv != nullptr)
 		this->srv->Release();
 
-	for (int i = 0; i < VIEW_SIZE; i++)
-	{
-		this->uav[i]->Release();
-	}
-	
+	if (this->uav != nullptr)
+		this->uav->Release();
 }
 
 bool CubeMap::init()
 {
-	this->initVPmatrix();
+	this->initVP();
 	this->initShaders();
 
 	this->mesh.createDefualtMesh(DefaultMesh::CUBE);
@@ -83,23 +77,18 @@ bool CubeMap::init()
 		ErrorLogger::errorMessage("Failed to create cube map texture.");
 		return false;
 	}
-	
-	for (int i = 0; i < VIEW_SIZE; i++)
+	//Create uav
+	D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+	uavDesc.Format = textureDesc.Format;
+	uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
+	uavDesc.Texture2DArray.ArraySize = 6;
+	uavDesc.Texture2DArray.FirstArraySlice = 0;
+
+	hr = this->graphic.getDevice()->CreateUnorderedAccessView(this->texture, &uavDesc, &this->uav);
+	if (FAILED(hr))
 	{
-		//Create uav
-		D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-		uavDesc.Format = textureDesc.Format;
-		uavDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2DARRAY;
-		uavDesc.Texture2DArray.ArraySize = 1;
-		uavDesc.Texture2DArray.FirstArraySlice = (UINT)i;
-
-		hr = this->graphic.getDevice()->CreateUnorderedAccessView(this->texture, &uavDesc, &this->uav[i]);
-		if (FAILED(hr))
-		{
-			ErrorLogger::errorMessage("Failed to create cubemap UAV.");
-			return false;
-		}
-
+		ErrorLogger::errorMessage("Failed to create cubemap UAV.");
+		return false;
 	}
 
 	//SRV

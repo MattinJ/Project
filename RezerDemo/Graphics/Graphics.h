@@ -40,6 +40,13 @@ private:
 		float specularPower;
 	} materialBufferStruct{};
 
+	struct CubeMapBuffer
+	{
+		int index;
+		DirectX::XMFLOAT3 pad;
+
+	}cubemapStruct{};
+
 	//Device, swapchain and Context.
 	ID3D11Device* device = nullptr;
 	IDXGISwapChain* swapchain = nullptr;
@@ -94,6 +101,7 @@ private:
 	//Constant buffers
 	ConstantBuffer mvpConstantBuffer;
 	ConstantBuffer materialCB;
+	ConstantBuffer cubemapCB;
 
 	//Window
 	Window* window;
@@ -117,7 +125,6 @@ private:
 	void shadowMap();
 	void geometryPass();
 	void lightPass();
-	void particlePass();
 	void renderCubeMapTexture();
 
 	//Private help variables.
