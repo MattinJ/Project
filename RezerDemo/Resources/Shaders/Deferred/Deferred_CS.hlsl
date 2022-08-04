@@ -33,9 +33,9 @@ cbuffer camera : register(b2)
 cbuffer cubemapCb : register(b3)
 {
     int cubeIndex;
-    float3 pad3;
+    int backBuffer;
+    float2 pad3;
 }
-
 
 StructuredBuffer<LightBuffer> buffer : register(t0);
 
@@ -170,8 +170,10 @@ void main(uint3 DTid : SV_DispatchThreadID)
         }
     }
     
-    output[DTid.xy] = saturate(ambientColor + lightColor);
-    cubeMap[float3(DTid.xy, cubeIndex)] = saturate(ambientColor + lightColor);
+    if(backBuffer == 1)
+        cubeMap[float3(DTid.xy, cubeIndex)] = saturate(ambientColor + lightColor);
+    else
+        output[DTid.xy] = saturate(ambientColor + lightColor);
     //output[DTid.xy] = diffuse[DTid.xy];
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[1].lightPos, 1.0f);

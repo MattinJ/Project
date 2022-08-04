@@ -87,6 +87,9 @@
     <ClInclude Include="Graphics\ParticleSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\Tessellering.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp">
@@ -158,6 +161,9 @@
     <ClCompile Include="Graphics\ParticleSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\Tessellering.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Deferred\Deferred_VS.hlsl">
@@ -176,5 +182,8 @@
     <FxCompile Include="Resources\Shaders\Particles\Particles_CS.hlsl" />
     <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_PS.hlsl" />
     <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Tesserling\Lod_HS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Tesserling\Lod_DS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Tesserling\Lod_VS.hlsl" />
   </ItemGroup>
 </Project>

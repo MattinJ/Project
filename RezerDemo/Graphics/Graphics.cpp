@@ -207,7 +207,8 @@ Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this)
+	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this),
+	tesselering(*this), lodMesh(*this), lodCB(*this, ("LOD CB"))
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -248,6 +249,8 @@ Graphics::~Graphics()
 
 void Graphics::render()
 {
+	//this->swapRasterState();
+	
 	//Clear screen.
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
@@ -268,7 +271,6 @@ void Graphics::render()
 	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
 	this->mvpBufferStruct.vpMatrix = vp.Transpose();
 
-
 	//Shadow map
 	this->shadowMap();
 
@@ -277,6 +279,7 @@ void Graphics::render()
 	
 	//Geomentry Pass
 	this->geometryPass();
+	this->lodPass();
 
 	//Cubemap mesh
 	this->renderCubeMap(this->cubemap.getMesh());
@@ -334,6 +337,11 @@ bool Graphics::initMeshes()
 	cubeMesh4->createTexture("texture3d_yellow.png");
 	cubeMesh4->setPosition(0.0f, 0.0f, 3.0f);
 	this->meshes.push_back(cubeMesh4);
+
+	//Lod mesh
+	this->lodMesh.createDefualtMesh(DefaultMesh::SPHERE);
+	this->lodMesh.createTexture("brick.jpg");
+	this->lodMesh.setPosition(-2.0f, 0.0f, -4.0f);
 
 	return true;
 }
@@ -459,6 +467,7 @@ void Graphics::renderMesh(Mesh& mesh)
 
 void Graphics::renderCubeMap(Mesh& mesh)
 {
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	//Update mesh first
 	mesh.update();
 
@@ -537,6 +546,11 @@ void Graphics::lightPass()
 	//Camera
 	this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
 
+	this->cubemapStruct.index = 0;
+	this->cubemapStruct.backBuffer = 0;
+	this->cubemapCB.updateBuffer(&cubemapStruct);
+	this->immediateContext->CSSetConstantBuffers(3, 1, &this->cubemapCB.getBuffer());
+
 	//Dispatch
 	this->immediateContext->Dispatch(this->threadX, this->threadY, this->threadZ);
 
@@ -547,6 +561,8 @@ void Graphics::lightPass()
 
 void Graphics::renderCubeMapTexture()
 {
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	
 	for (int i = 0; i < 6; i++)
 	{
 		//Clear screen.
@@ -601,8 +617,8 @@ void Graphics::renderCubeMapTexture()
 
 		//Cubemap cb
 		this->cubemapStruct.index = i;
+		this->cubemapStruct.backBuffer = 1;
 		this->cubemapCB.updateBuffer(&cubemapStruct);
-		//this->cubemapCB.createBuffer(sizeof(this->cubemapStruct), sizeof(CubeMapBuffer), &this->cubemapStruct);
 		this->immediateContext->CSSetConstantBuffers(3, 1, &this->cubemapCB.getBuffer());
 
 		//Dispatch
@@ -612,8 +628,6 @@ void Graphics::renderCubeMapTexture()
 		this->immediateContext->CSSetShader(nullptr, nullptr, 0);
 		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
 		this->immediateContext->CSSetUnorderedAccessViews(1, 1, &this->nullUAV, nullptr);
-
-	
 
 		//------------------- Particles -------------------
 
@@ -625,6 +639,102 @@ void Graphics::renderCubeMapTexture()
 		this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);
 	}
 
+	//this->immediateContext->RSSetViewports(1, nullptr);
+}
+
+#include <iostream>
+void Graphics::lodPass()
+{
+	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
+
+	//Update mesh first
+	this->lodMesh.update();
+
+	//Set input layout and vertex shader
+	this->immediateContext->IASetInputLayout(this->deferred_VS.getInputLayout());
+	this->immediateContext->VSSetShader(this->deferred_VS.getVS(), nullptr, 0);
+
+	//Set topology
+	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+
+	//Set hull shader
+	this->immediateContext->HSSetShader(this->tesselering.getHullShader(), nullptr, 0);
+
+	//Constantbuffer
+	this->tesserlingStruct.cameraPos = this->camera.getPostion();
+
+	std::cout << "X: " << this->camera.getPostion().x << "Y: " << this->camera.getPostion().y << "Z: " << this->camera.getPostion().z << std::endl;
+
+ 	this->tesserlingStruct.objetPos = this->lodMesh.getPosition();
+ 	this->lodCB.updateBuffer(&this->tesserlingStruct);
+	this->immediateContext->HSSetConstantBuffers(0, 1, &this->lodCB.getBuffer());
+
+	//Set domain shader
+	this->immediateContext->DSSetShader(this->tesselering.getDomainShader(), nullptr, 0);
+
+	this->swapRasterState();
+
+	//Set pixel shader
+	this->immediateContext->PSSetShader(this->deferred_PS.getPS(), nullptr, 0);
+
+	//Set mvp matrix
+	DirectX::SimpleMath::Matrix m = this->lodMesh.getWorldMatrix();
+	this->mvpBufferStruct.worldMatrix = m.Transpose();
+	this->mvpConstantBuffer.updateBuffer(&this->mvpBufferStruct);
+
+	//Set vertex/index buffer
+	this->immediateContext->IASetVertexBuffers(
+		0, 1, &this->lodMesh.getVertexBuffer().getBuffer(), &this->lodMesh.getVertexBuffer().getStride(), &this->lodMesh.getVertexBuffer().getOffset()
+	);
+
+	this->immediateContext->IASetIndexBuffer(
+		this->lodMesh.getIndexBuffer().getBuffer(), DXGI_FORMAT_R32_UINT, 0
+	);
+
+	//Set vertex shader CB
+	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
+	this->immediateContext->DSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
+
+	//Set Sampler and textures
+	this->immediateContext->PSSetSamplers(0, 1, &this->lodMesh.getTexture().getSamplerState());
+	this->immediateContext->PSSetShaderResources(0, 1, &this->lodMesh.getTexture().getSRV());
+	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
+	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
+
+	//Draw
+	this->immediateContext->DrawIndexed(
+		this->lodMesh.getIndices().size(), 0, 0
+	);
+
+	//Remove Hull and domain shader från
+	this->immediateContext->HSSetShader(nullptr, nullptr, 0);
+	this->immediateContext->DSSetShader(nullptr, nullptr, 0);
+
+	//rebind sampler
+	ID3D11SamplerState* nullSampler = nullptr;
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+	ID3D11RasterizerState* nullRST = nullptr;
+	
+	this->immediateContext->PSSetSamplers(0, 1, &nullSampler);
+	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
+
+	this->immediateContext->RSSetState(nullRST);
+
+}
+
+void Graphics::swapRasterState()
+{
+	if (Input::isKeyJustPressed(Keys::R))
+	{
+		this->rasterStateValue *= -1;
+	}
+
+	ID3D11RasterizerState* nullRST = nullptr;
+
+	if (this->rasterStateValue == -1)
+		this->immediateContext->RSSetState(this->tesselering.getRasterWireState());
+	else
+		this->immediateContext->RSSetState(nullRST);
 }
 
 bool Graphics::init(Window& window)
@@ -653,7 +763,11 @@ bool Graphics::init(Window& window)
 	//Constantbuffers
 	this->mvpConstantBuffer.createBuffer(sizeof(mvpBufferStruct), sizeof(mvpBuffer), &mvpBufferStruct);
 	this->cubemapCB.createBuffer(sizeof(cubemapStruct), sizeof(CubeMapBuffer), &cubemapStruct);
+	this->lodCB.createBuffer(sizeof(tesserlingStruct), sizeof(TesserlingBuffer), &tesserlingStruct);
 
+	//Tesserling
+	this->tesselering.init();
+	
 	//Light
 	this->light.init();
 

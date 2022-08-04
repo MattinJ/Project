@@ -19,6 +19,8 @@
 
 #include "Camera.h"
 
+#include "Tessellering.h"
+
 #include "../Application/Window.h"
 
 const int BUFFER_COUNT = 6;
@@ -43,9 +45,19 @@ private:
 	struct CubeMapBuffer
 	{
 		int index;
-		DirectX::XMFLOAT3 pad;
+		int backBuffer;
+		DirectX::XMFLOAT2 pad;
 
 	}cubemapStruct{};
+
+	struct TesserlingBuffer
+	{
+		DirectX::XMFLOAT3 cameraPos;
+		float pad1;
+		DirectX::XMFLOAT3 objetPos;
+		float pad2;
+
+	}tesserlingStruct{};
 
 	//Device, swapchain and Context.
 	ID3D11Device* device = nullptr;
@@ -98,10 +110,15 @@ private:
 	ConstantBuffer cameraPos;
 	ID3D11Buffer* cameraBuff = nullptr;
 
+	//Tesserlering
+	Tessellering tesselering;
+	Mesh lodMesh;
+
 	//Constant buffers
 	ConstantBuffer mvpConstantBuffer;
 	ConstantBuffer materialCB;
 	ConstantBuffer cubemapCB;
+	ConstantBuffer lodCB;
 
 	//Window
 	Window* window;
@@ -126,6 +143,10 @@ private:
 	void geometryPass();
 	void lightPass();
 	void renderCubeMapTexture();
+	void lodPass();
+
+	void swapRasterState();
+	int rasterStateValue = 1;
 
 	//Private help variables.
 	float angle = 0;

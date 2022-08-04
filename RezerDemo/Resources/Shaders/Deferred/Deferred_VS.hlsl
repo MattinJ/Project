@@ -30,9 +30,10 @@ VS_OUTPUT main(VS_INPUT input)
     //Calculate the position view and proj
     output.out_pos = mul(worldPostion, vpMatrix);
     
-    //Calculate the normal against the world and normlize it.
+    //Calculate the normal against the world.
     output.out_normal = mul(input.in_normal, (float3x3) worldMatrix);
-   
+    output.out_normal = normalize(output.out_normal);
+    
     //Store UV
     output.out_uv = input.in_uv;
     
