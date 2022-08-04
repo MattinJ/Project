@@ -187,7 +187,7 @@ bool Graphics::createViews()
 void Graphics::shadowMap()
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	this->light.renderShadowMap(this->meshes);
+	this->light.renderShadowMap(this->meshes, this->cubemap.getMesh(), this->lodMesh);
 }
 
 void Graphics::geometryPass()
@@ -263,6 +263,7 @@ void Graphics::render()
 	//Update
 	this->particleSystem.update();
 	this->camera.update();
+	this->light.update();
 	
 	//Cubemap
 	this->renderCubeMapTexture();
@@ -341,7 +342,7 @@ bool Graphics::initMeshes()
 	//Lod mesh
 	this->lodMesh.createDefualtMesh(DefaultMesh::SPHERE);
 	this->lodMesh.createTexture("brick.jpg");
-	this->lodMesh.setPosition(-2.0f, 0.0f, -4.0f);
+	this->lodMesh.setPosition(-4.0f, 0.0f, -4.0f);
 
 	return true;
 }
@@ -591,10 +592,10 @@ void Graphics::renderCubeMapTexture()
 		this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->nullRTVarray, nullptr);
 
 		//Set compute shader
-		this->immediateContext->CSSetShader(this->deffered_CS, nullptr, 0);
+		this->immediateContext->CSSetShader(this->cubemap.getComputeShader(), nullptr, 0);
 
 		//Set UAV
-		this->immediateContext->CSSetUnorderedAccessViews(1, 1, &this->cubemap.getUAV(i), nullptr);
+		this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->cubemap.getUAV(i), nullptr);
 
 		//Bind structure buffer
 		this->immediateContext->CSSetShaderResources(0, 1, &this->light.getStructureSRV());
@@ -632,17 +633,23 @@ void Graphics::renderCubeMapTexture()
 		//------------------- Particles -------------------
 
 		//Set rtv backbuffer
-		this->immediateContext->OMSetRenderTargets(1, &this->cubemap.getRTV(i), this->dsv);
+		//FIXA NY DSV SOM MATCHAR RTV
+		this->immediateContext->OMSetRenderTargets(1, &this->cubemap.getRTV(i), this->cubemap.getDSV());
 		this->particleSystem.render(this->camera);
 
 		//Unbind rtv
 		this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);
 	}
 
-	//this->immediateContext->RSSetViewports(1, nullptr);
+	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	for (int i = 0; i < BUFFER_COUNT; i++)
+	{
+		this->immediateContext->ClearRenderTargetView(this->rtvArray[i], clearColor);
+	}
+	this->immediateContext->ClearDepthStencilView(this->dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
 }
 
-#include <iostream>
 void Graphics::lodPass()
 {
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
@@ -662,8 +669,6 @@ void Graphics::lodPass()
 
 	//Constantbuffer
 	this->tesserlingStruct.cameraPos = this->camera.getPostion();
-
-	std::cout << "X: " << this->camera.getPostion().x << "Y: " << this->camera.getPostion().y << "Z: " << this->camera.getPostion().z << std::endl;
 
  	this->tesserlingStruct.objetPos = this->lodMesh.getPosition();
  	this->lodCB.updateBuffer(&this->tesserlingStruct);

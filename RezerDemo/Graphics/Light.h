@@ -77,7 +77,7 @@ public:
 	virtual ~Light();
 
 	bool init();
-	void renderShadowMap(std::vector<Mesh*>& meshes);
+	void renderShadowMap(std::vector<Mesh*>& meshes, Mesh& cubemap, Mesh& lodMesh);
 	bool update();
 
 	inline ID3D11Texture2D*& getShadowMapTexture() { return this->shadowMapDepthTexture; }

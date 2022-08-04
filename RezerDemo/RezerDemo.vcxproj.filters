@@ -185,5 +185,6 @@
     <FxCompile Include="Resources\Shaders\Tesserling\Lod_HS.hlsl" />
     <FxCompile Include="Resources\Shaders\Tesserling\Lod_DS.hlsl" />
     <FxCompile Include="Resources\Shaders\Tesserling\Lod_VS.hlsl" />
+    <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_CS.hlsl" />
   </ItemGroup>
 </Project>

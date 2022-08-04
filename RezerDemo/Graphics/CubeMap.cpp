@@ -3,6 +3,10 @@
 #include "../Application/ErrorLogger.h"
 #include "../Application/Settings.h"
 
+#include <d3dcompiler.h> //Compile and load shaders
+
+#pragma comment(lib, "D3DCompiler.lib")
+
 using namespace DirectX::SimpleMath;
 
 void CubeMap::initVP()
@@ -15,7 +19,7 @@ void CubeMap::initVP()
 	this->viewMatrix[5] = Matrix::CreateLookAt(this->position, Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 1.0f, 0.0f));		// -Z
 }
 
-void CubeMap::initShaders()
+bool CubeMap::initShaders()
 {
 	//Geometry pass shaders
 	InputLayoutDesc inputLayoutDesc;
@@ -25,18 +29,78 @@ void CubeMap::initShaders()
 
 	this->vertexShader.loadVS(L"Cubemap_VS", inputLayoutDesc);
 	this->pixelShader.loadPS(L"Cubemap_PS");
+
+	//Compute shader.
+	//Load compute shader
+	ID3DBlob* blob = nullptr;
+	HRESULT hr = D3DReadFileToBlob(L"CompiledShaders/Cubemap_CS.cso", &blob);
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to read CS shader.");
+		return false;
+	}
+
+	//Create geometry shader
+	hr = this->graphic.getDevice()->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), nullptr, &this->computeShader);
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to create CS.");
+		return false;
+	}
+
+	return true;
+}
+
+bool CubeMap::initViews()
+{
+	D3D11_TEXTURE2D_DESC dsvTextureDesc = {};
+	dsvTextureDesc.Width = this->textureSize;
+	dsvTextureDesc.Height = this->textureSize;
+	dsvTextureDesc.MipLevels = 1;
+	dsvTextureDesc.ArraySize = 1;
+	dsvTextureDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+
+	dsvTextureDesc.SampleDesc.Count = 1;
+	dsvTextureDesc.SampleDesc.Quality = 0;
+
+	dsvTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	dsvTextureDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+	dsvTextureDesc.CPUAccessFlags = 0;
+	dsvTextureDesc.MiscFlags = 0;
+
+	HRESULT hr = this->graphic.getDevice()->CreateTexture2D(&dsvTextureDesc, nullptr, &this->dsvTexture);
+
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to create cubemap depth stencil texture.");
+		return false;
+	}
+
+	//Depth stencil view
+	D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+	dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+	dsvDesc.Texture2D.MipSlice = 0;
+
+	hr = this->graphic.getDevice()->CreateDepthStencilView(this->dsvTexture, &dsvDesc, &this->dsv);
+
+	if (FAILED(hr))
+	{
+		ErrorLogger::errorMessage("Failed to create cubemap depth stencil view");
+		return false;
+	}
+
+	return true;
 }
 
 CubeMap::CubeMap(Graphics& graphic)
 	:graphic(graphic),texture(nullptr), uav(nullptr), textureSize(512), position(0.0f, 0.0f, 0.0f), pixelShader(graphic), vertexShader(graphic),
-	mesh(graphic), srv(nullptr), vp()
+	mesh(graphic), srv(nullptr), vp(), dsv(nullptr), dsvTexture(nullptr), computeShader(nullptr)
 {
 	for (int i = 0; i < VIEW_SIZE; i++)
 	{
 		this->rtvArray[i] = nullptr;
 	}
-
-
 }
 
 CubeMap::~CubeMap()
@@ -55,6 +119,15 @@ CubeMap::~CubeMap()
 	{
 		this->rtvArray[i]->Release();
 	}
+
+	if (this->dsvTexture != nullptr)
+		this->dsvTexture->Release();
+
+	if (this->dsv != nullptr)
+		this->dsv->Release();
+
+	if (this->computeShader != nullptr)
+		this->computeShader->Release();
 }
 
 bool CubeMap::init()

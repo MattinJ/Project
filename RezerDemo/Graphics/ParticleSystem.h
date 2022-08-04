@@ -52,7 +52,7 @@ private:
 	ID3D11Texture2D* texture;
 	ID3D11UnorderedAccessView* uav;
 	ID3D11UnorderedAccessView* uavNull = nullptr;
-
+	
 	std::vector<Vertex> particles;
 
 	DirectX::SimpleMath::Matrix worldMatrix;
@@ -76,6 +76,7 @@ private:
 	bool initBuffers();
 	bool initShaders();
 	void initParticle();
+	
 	
 public:
 	ParticleSystem(Graphics& graphic);

@@ -23,10 +23,14 @@ private:
 	ID3D11RenderTargetView* rtvArray[VIEW_SIZE];
 	D3D11_VIEWPORT vp;
 
+	ID3D11Texture2D* dsvTexture;
+	ID3D11DepthStencilView* dsv;
+
 	Graphics& graphic;
 
 	PixelShader pixelShader;
 	VertexShader vertexShader;
+	ID3D11ComputeShader* computeShader;
 
 	UINT textureSize;
 
@@ -35,7 +39,8 @@ private:
 	DirectX::SimpleMath::Vector3 position;
 
 	void initVP();
-	void initShaders();
+	bool initShaders();
+	bool initViews();
 
 public:
 	CubeMap(Graphics& graphic);
@@ -48,14 +53,19 @@ public:
 	inline ID3D11ShaderResourceView*& getSRV() { return this->srv; }
 	inline D3D11_VIEWPORT& getVP() { return this->vp; }
 
+	inline ID3D11DepthStencilView*& getDSV() { return this->dsv; }
+
 	inline ID3D11RenderTargetView*& getRTV(int index) { return this->rtvArray[index]; }
 
 	inline DirectX::SimpleMath::Matrix& getVPMatrix(int index) { return this->viewMatrix[index]; }
 
 	inline PixelShader& getPixelShader() { return this->pixelShader; }
 	inline VertexShader& getVertexShader() { return this->vertexShader; }
+	inline ID3D11ComputeShader*& getComputeShader() { return this->computeShader; }
 
 	inline Mesh& getMesh() { return this->mesh; }
+
+
 
 };
 

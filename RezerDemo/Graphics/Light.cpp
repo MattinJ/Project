@@ -216,12 +216,10 @@ bool Light::init()
 	return true;
 }
 
-void Light::renderShadowMap(std::vector<Mesh*>& meshes)
+void Light::renderShadowMap(std::vector<Mesh*>& meshes, Mesh& cubemap, Mesh& lodMesh)
 {
 	for (int i = 0; i < NR_OF_LIGHT; i++)
-	{
-		this->update();
-		
+	{		
 		//Update view matrix
 		DirectX::XMFLOAT3 setTarget = {};
 		setTarget.x = this->lights[i].position.x + this->lights[i].direction.x;
@@ -281,6 +279,53 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes)
 			//Draw
 			this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
 		}
+
+		//Cubemap mesh
+		DirectX::SimpleMath::Matrix m = cubemap.getWorldMatrix();
+		this->lightBufferMVP.worldMatrix = m.Transpose();
+		this->lightBufferMVP.vpMatrix = vpMatrix.Transpose();
+
+		this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
+
+		//Set vertex buffer
+		this->graphic.getDeviceContext()->IASetVertexBuffers(0, 1,
+			&cubemap.getVertexBuffer().getBuffer(),
+			&cubemap.getVertexBuffer().getStride(),
+			&cubemap.getVertexBuffer().getOffset()
+		);
+
+		//Set index buffer
+		this->graphic.getDeviceContext()->IASetIndexBuffer(
+			cubemap.getIndexBuffer().getBuffer(),
+			DXGI_FORMAT_R32_UINT, 0
+		);
+
+		//Draw
+		this->graphic.getDeviceContext()->DrawIndexed(lodMesh.getIndices().size(), 0, 0);
+
+		//Lod mesh
+		m = lodMesh.getWorldMatrix();
+		this->lightBufferMVP.worldMatrix = m.Transpose();
+		this->lightBufferMVP.vpMatrix = vpMatrix.Transpose();
+
+		this->shadowMapMVPBuffer.updateBuffer(&lightBufferMVP);
+
+		//Set vertex buffer
+		this->graphic.getDeviceContext()->IASetVertexBuffers(0, 1,
+			&lodMesh.getVertexBuffer().getBuffer(),
+			&lodMesh.getVertexBuffer().getStride(),
+			&lodMesh.getVertexBuffer().getOffset()
+		);
+
+		//Set index buffer
+		this->graphic.getDeviceContext()->IASetIndexBuffer(
+			lodMesh.getIndexBuffer().getBuffer(),
+			DXGI_FORMAT_R32_UINT, 0
+		);
+
+		//Draw
+		this->graphic.getDeviceContext()->DrawIndexed(lodMesh.getIndices().size(), 0, 0);
+
 	}
 }
 
@@ -288,7 +333,7 @@ bool Light::update()
 {
 	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
-		if (this->lights[i].lightType == 1)
+		if (this->lights[i].lightType == 0)
 		{
 			/*this->lights[0].position = camera.getPostion();
 			this->lights[0].direction = camera.getTarget() - this->lights[0].position;*/
