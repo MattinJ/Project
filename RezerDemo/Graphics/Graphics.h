@@ -20,6 +20,7 @@
 #include "Camera.h"
 
 #include "Tessellering.h"
+#include "MeshLoader.h"
 
 #include "../Application/Window.h"
 
@@ -104,6 +105,7 @@ private:
 	Texture specularTexture;
 
 	CubeMap cubemap;
+	MeshLoader meshLoader;
 
 	//Camera
 	Camera camera;
