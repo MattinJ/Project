@@ -114,7 +114,6 @@ private:
 
 	//Tesserlering
 	Tessellering tesselering;
-	Mesh lodMesh;
 
 	//Constant buffers
 	ConstantBuffer mvpConstantBuffer;
@@ -127,6 +126,8 @@ private:
 
 	//Meshes
 	std::vector<Mesh*> meshes;
+	Mesh* cubeMapMesh;
+	Mesh* lodMesh;
 
 	//Particles
 	ParticleSystem particleSystem;
@@ -137,6 +138,8 @@ private:
 	bool defferdInit();
 	bool loadShaders();
 	bool initMeshes();
+	bool createMesh(MeshData&& newMeshData, std::string textureFile, DirectX::SimpleMath::Vector3 position, 
+		DirectX::SimpleMath::Vector3 scale = DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f));
 
 	void renderMesh(Mesh& mesh);
 	void renderCubeMap(Mesh& mesh);

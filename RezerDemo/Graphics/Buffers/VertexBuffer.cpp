@@ -9,17 +9,17 @@ VertexBuffer::~VertexBuffer()
 {
 }
 
-bool VertexBuffer::createBuffer(UINT stride, UINT bufferDataSize, void* initialData )
+bool VertexBuffer::createBuffer(MeshData& meshData)
 {
-	this->stride = stride;
+	this->stride = sizeof(Vertex);
 	this->offset = 0; 
 	
-	//vertexDesc.ByteWidth = sizeof(vertices);
+	UINT bufferSize = sizeof(meshData.getVertices()[0]) * meshData.getVertices().size();
 
 	return Buffer::createBuffer(
 		D3D11_USAGE_DEFAULT, 
 		D3D11_BIND_VERTEX_BUFFER, 
-		bufferDataSize,
-		initialData
+		bufferSize,
+		(void*)&meshData.getVertices()[0]
 	);
 }

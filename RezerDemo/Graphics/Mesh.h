@@ -7,32 +7,7 @@
 #include "Buffers/IndexBuffer.h"
 #include "Texture.h"
 
-enum class DefaultMesh
-{
-	TRIANGLE,
-	QUAD,
-	CUBE,
-	SPHERE,
-	TETRAHEDRON,
-	PLANE
-};
-
-struct Vertex
-{
-	//Position
-	float posX;
-	float posY;
-	float posZ;
-
-	//Normal
-	float xN;
-	float yN;
-	float zN;
-
-	//UV coords
-	float u;
-	float v;
-};
+#include "MeshData.h"
 
 class Mesh
 {
@@ -40,10 +15,8 @@ private:
 	VertexBuffer vertexBuffer;
 	IndexBuffer indexBuffer;
 
-	std::vector<Vertex> vertices;
-	std::vector<UINT> indices;
-
-	Vertex makeVert(float posX, float posY, float posZ, float u, float v);
+	std::vector<Submesh> subMeshes;
+	Submesh entireMesh;
 
 	DirectX::SimpleMath::Vector3 pos;
 	DirectX::SimpleMath::Vector3 rot;
@@ -62,37 +35,24 @@ private:
 
 	void updateWorldMatrix();
 
-	void createTriangle();
-	void createQuad();
-	void createCube();
-	void createTetrahedron();
-	void createSphere(int resX = 10, int resY = 10);
-	void createPlane(int resX = 10, int resY = 10);
-
-	void calculateNormals(DefaultMesh mesh);
-
 public:
-	Mesh(Graphics& renderer);
+	Mesh(Graphics& renderer, MeshData&& meshData);
 	virtual ~Mesh();
-
-	bool createDefualtMesh(DefaultMesh mesh);
 
 	bool createTexture(std::string file);
 
-	inline DirectX::SimpleMath::Vector3& getAmbient() { return this->ambient; }
-	inline DirectX::SimpleMath::Vector3& getSpecular() { return this->specular; }
-	inline float& getSpevularPower() { return this->specularPower; }
-
 	inline VertexBuffer& getVertexBuffer() { return this->vertexBuffer; }
 	inline IndexBuffer& getIndexBuffer() { return this->indexBuffer; }
+	inline std::vector<Submesh>& getSubmeshes() { return this->subMeshes; }
+	inline const Submesh& getEntireSubmesh() { return this->entireMesh; }
+	
+	inline DirectX::SimpleMath::Vector3& getAmbient() { return this->ambient; }
+	inline DirectX::SimpleMath::Vector3& getSpecular() { return this->specular; }
+	inline float& getSpecularPower() { return this->specularPower; }
 
-	inline std::vector<Vertex>& getVertices() { return this->vertices; }
-	inline std::vector<UINT>& getIndices() { return this->indices; }
-
-public:
-	void setPosition(float x, float y, float z);
-	void setRotation(float x, float y, float z);
-	void setScaling(float x, float y, float z);
+	void setPosition(DirectX::SimpleMath::Vector3 pos);
+	void setRotation(DirectX::SimpleMath::Vector3 rot);
+	void setScaling(DirectX::SimpleMath::Vector3 scale);
 
 	void setMaterial(DirectX::SimpleMath::Vector3 ambient, DirectX::SimpleMath::Vector3 specular, float specularPower);
 	void setSpecularPower(float power);

@@ -1,6 +1,7 @@
 #pragma once
 #include "Buffer.h"
 #include <vector>
+#include "../MeshData.h"
 
 class VertexBuffer : public Buffer
 {
@@ -12,7 +13,7 @@ public:
 	VertexBuffer(Graphics& graphic);
 	virtual ~VertexBuffer();
 
-	bool createBuffer(UINT stride, UINT bufferDataSize, void* initialData);
+	bool createBuffer(MeshData& meshData);
 
 	inline UINT& getStride() { return this->stride; }
 	inline UINT& getOffset() { return this->offset; }

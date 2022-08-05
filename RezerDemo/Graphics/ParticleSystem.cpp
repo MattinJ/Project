@@ -107,11 +107,11 @@ void ParticleSystem::initParticle()
 {
 	for (int i = 0; i < this->nrOfPartciles; i++)
 	{
-		float randomX = (float)(-1000 + (std::rand() % 2000)) * 0.01;
-		float randomY = (float)(2000 + (std::rand() % 1000)) * 0.01;
-		float randomZ = (float)(-1000 + (std::rand() % 2000)) * 0.01;
+		float randomX = (float)((-1000 + (std::rand() % 2000)) * 0.01);
+		float randomY = (float)((2000 + (std::rand() % 1000)) * 0.01);
+		float randomZ = (float)((-1000 + (std::rand() % 2000)) * 0.01);
 
-		float fallSpeed = (float)(1000 + (std::rand() % 2000)) * 0.0001;
+		float fallSpeed = (float)((1000 + (std::rand() % 2000)) * 0.0001);
 		
 		Vertex point = { randomX, randomY, randomZ, fallSpeed};
 		particles.push_back(point);
@@ -215,7 +215,7 @@ void ParticleSystem::update()
 	this->particleStruct.deltaTime = Time::getDT();
 	this->particleStruct.speed = this->speed;
 	this->particleStruct.time = this->time;
-	this->time += 0.1;
+	this->time += 0.1f;
 	this->particleCB.updateBuffer(&this->particleStruct);
 }
 

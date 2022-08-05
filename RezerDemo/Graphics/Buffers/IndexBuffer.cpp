@@ -9,14 +9,16 @@ IndexBuffer::~IndexBuffer()
 {
 }
 
-bool IndexBuffer::createBuffer(UINT bufferDataSize, void* initialData, UINT nrOfIndex)
+bool IndexBuffer::createBuffer(MeshData& meshData)
 {
-    this->nrOfIndex = nrOfIndex;
+    this->nrOfIndex = meshData.getIndices().size();
+    
+    UINT bufferSize = sizeof(meshData.getIndices()[0]) * this->nrOfIndex;
     
     return Buffer::createBuffer(
         D3D11_USAGE_IMMUTABLE,
         D3D11_BIND_INDEX_BUFFER,
-        bufferDataSize,
-        initialData
+        bufferSize,
+        (void*)&meshData.getIndices()[0]
     );
 }

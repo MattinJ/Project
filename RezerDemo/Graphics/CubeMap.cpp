@@ -95,7 +95,7 @@ bool CubeMap::initViews()
 
 CubeMap::CubeMap(Graphics& graphic)
 	:graphic(graphic),texture(nullptr), uav(nullptr), textureSize(512), position(0.0f, 0.0f, 0.0f), pixelShader(graphic), vertexShader(graphic),
-	mesh(graphic), srv(nullptr), vp(), dsv(nullptr), dsvTexture(nullptr), computeShader(nullptr)
+	srv(nullptr), vp(), dsv(nullptr), dsvTexture(nullptr), computeShader(nullptr)
 {
 	for (int i = 0; i < VIEW_SIZE; i++)
 	{
@@ -134,9 +134,6 @@ bool CubeMap::init()
 {
 	this->initVP();
 	this->initShaders();
-
-	this->mesh.createDefualtMesh(DefaultMesh::CUBE);
-	this->mesh.setPosition(0.0f, 0.0f, 0.0f);
 
 	//Create texture cubemap
 	D3D11_TEXTURE2D_DESC textureDesc = {};
@@ -209,8 +206,8 @@ bool CubeMap::init()
 
 	this->vp.TopLeftX = 0;
 	this->vp.TopLeftY = 0;
-	this->vp.Width = this->textureSize;
-	this->vp.Height = this->textureSize;
+	this->vp.Width = (float)this->textureSize;
+	this->vp.Height = (float)this->textureSize;
 	this->vp.MinDepth = 0;
 	this->vp.MaxDepth = 1;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Buffer.h"
+#include "../MeshData.h"
 
 class IndexBuffer : public Buffer
 {
@@ -11,7 +12,7 @@ public:
 	IndexBuffer(Graphics& graphic);
 	virtual ~IndexBuffer();
 
-	bool createBuffer(UINT bufferDataSize, void* initialData, UINT nrOfIndex);
+	bool createBuffer(MeshData& meshData);
 
 	inline const UINT& getNrOFIndex() { return this->nrOfIndex; }
 };

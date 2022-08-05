@@ -34,8 +34,6 @@ private:
 
 	UINT textureSize;
 
-	Mesh mesh;
-
 	DirectX::SimpleMath::Vector3 position;
 
 	void initVP();
@@ -62,10 +60,5 @@ public:
 	inline PixelShader& getPixelShader() { return this->pixelShader; }
 	inline VertexShader& getVertexShader() { return this->vertexShader; }
 	inline ID3D11ComputeShader*& getComputeShader() { return this->computeShader; }
-
-	inline Mesh& getMesh() { return this->mesh; }
-
-
-
 };
 

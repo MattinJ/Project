@@ -184,6 +184,7 @@
     <ClInclude Include="Graphics\MeshLoader.h" />
     <ClInclude Include="Graphics\ParticleSystem.h" />
     <ClInclude Include="Graphics\Tessellering.h" />
+    <ClInclude Include="Graphics\MeshData.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application\ErrorLogger.cpp" />
@@ -210,6 +211,7 @@
     <ClCompile Include="Graphics\MeshLoader.cpp" />
     <ClCompile Include="Graphics\ParticleSystem.cpp" />
     <ClCompile Include="Graphics\Tessellering.cpp" />
+    <ClCompile Include="Graphics\MeshData.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Cubemap\Cubemap_CS.hlsl">

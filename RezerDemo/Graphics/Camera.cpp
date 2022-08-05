@@ -58,10 +58,10 @@ void Camera::move()
 		this->camPitch += Input::getCursorDeltaY() * this->sens;
 
 		//Snap camera
-		if (this->camPitch > 0.9)
-			this->camPitch = 0.9;
-		else if (this->camPitch < -0.9)
-			this->camPitch = -0.9;
+		if (this->camPitch > 0.9f)
+			this->camPitch = 0.9f;
+		else if (this->camPitch < -0.9f)
+			this->camPitch = -0.9f;
 	}
 	
 	this->updateCamera();
@@ -69,7 +69,7 @@ void Camera::move()
 
 Camera::Camera(Graphics& graphic)
 	:graphic(graphic), viewMatrix(DirectX::SimpleMath::Matrix::Identity), projectionMatrix(DirectX::SimpleMath::Matrix::Identity),
-	fov(90.0f), aspectRatio(float(s_resolusionX / s_resolusionY)), nearPlane(0.5f), farPlane(100.0f), speed(10.0), sens(0.01), constantBuffer(graphic, "Camera pos CB")
+	fov(90.0f), aspectRatio(float(s_resolusionX / s_resolusionY)), nearPlane(0.5f), farPlane(100.0f), speed(10.0), sens(0.01f), constantBuffer(graphic, "Camera pos CB")
 
 {
 	this->projectionMatrix = XMMatrixPerspectiveFovLH(this->fov, this->aspectRatio, this->nearPlane, this->farPlane);

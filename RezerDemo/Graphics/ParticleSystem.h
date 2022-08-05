@@ -66,7 +66,7 @@ private:
 	ID3D11ComputeShader* particle_CS = nullptr;
 	
 	int nrOfPartciles = 64;
-	float speed = 0.1;
+	float speed = 0.1f;
 
 	Texture particleTexture;
 

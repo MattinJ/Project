@@ -53,7 +53,7 @@ bool Light::initLights()
 bool Light::initBuffer()
 {
 	//Buffer
-	this->bufferSize = sizeof(LightStruct) * this->lights.size();
+	this->bufferSize = (UINT)(sizeof(LightStruct) * this->lights.size());
 
 	D3D11_BUFFER_DESC bufferDesc = {};
 	bufferDesc.ByteWidth = this->bufferSize;
@@ -277,7 +277,15 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes, Mesh& cubemap, Mesh& lod
 			);
 
 			//Draw
-			this->graphic.getDeviceContext()->DrawIndexed(meshes[i]->getIndices().size(), 0, 0);
+			for (size_t i = 0; i < meshes[i]->getSubmeshes().size(); i++)
+			{
+				Submesh& currentSubMesh = meshes[i]->getSubmeshes()[i];
+
+				//Draw
+				this->graphic.getDeviceContext()->DrawIndexed(
+					currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+				);
+			}
 		}
 
 		//Cubemap mesh
@@ -300,8 +308,15 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes, Mesh& cubemap, Mesh& lod
 			DXGI_FORMAT_R32_UINT, 0
 		);
 
-		//Draw
-		this->graphic.getDeviceContext()->DrawIndexed(lodMesh.getIndices().size(), 0, 0);
+		for (size_t i = 0; i < cubemap.getSubmeshes().size(); i++)
+		{
+			Submesh& currentSubMesh = cubemap.getSubmeshes()[i];
+
+			//Draw
+			this->graphic.getDeviceContext()->DrawIndexed(
+				currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+			);
+		}
 
 		//Lod mesh
 		m = lodMesh.getWorldMatrix();
@@ -323,8 +338,15 @@ void Light::renderShadowMap(std::vector<Mesh*>& meshes, Mesh& cubemap, Mesh& lod
 			DXGI_FORMAT_R32_UINT, 0
 		);
 
-		//Draw
-		this->graphic.getDeviceContext()->DrawIndexed(lodMesh.getIndices().size(), 0, 0);
+		for (size_t i = 0; i < lodMesh.getSubmeshes().size(); i++)
+		{
+			Submesh& currentSubMesh = lodMesh.getSubmeshes()[i];
+
+			//Draw
+			this->graphic.getDeviceContext()->DrawIndexed(
+				currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+			);
+		}
 
 	}
 }
@@ -343,7 +365,7 @@ bool Light::update()
 				//this->lights[i].position.x = this->lights[i].position.x - 0.2;
 				
 				DirectX::SimpleMath::Vector3 dir;
-				dir.x = this->lights[i].direction.x - 0.2;
+				dir.x = this->lights[i].direction.x - 0.2f;
 				dir.y = this->lights[i].direction.y;
 				dir.z = this->lights[i].direction.z;
 				dir.Normalize();
@@ -355,7 +377,7 @@ bool Light::update()
 				//this->lights[i].position.x = this->lights[i].position.x + 0.2;
 				
 				DirectX::SimpleMath::Vector3 dir;
-				dir.x = this->lights[i].direction.x + 0.2;
+				dir.x = this->lights[i].direction.x + 0.2f;
 				dir.y = this->lights[i].direction.y;
 				dir.z = this->lights[i].direction.z;
 				dir.Normalize();

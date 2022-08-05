@@ -187,7 +187,7 @@ bool Graphics::createViews()
 void Graphics::shadowMap()
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	this->light.renderShadowMap(this->meshes, this->cubemap.getMesh(), this->lodMesh);
+	this->light.renderShadowMap(this->meshes, *this->cubeMapMesh, *this->lodMesh);
 }
 
 void Graphics::geometryPass()
@@ -208,7 +208,7 @@ Graphics::Graphics()
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
 	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this),
-	tesselering(*this), lodMesh(*this), lodCB(*this, ("LOD CB"))
+	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -245,6 +245,9 @@ Graphics::~Graphics()
 	{
 		delete this->meshes[i];
 	}
+
+	delete this->cubeMapMesh;
+	delete this->lodMesh;
 }
 
 void Graphics::render()
@@ -283,7 +286,7 @@ void Graphics::render()
 	this->lodPass();
 
 	//Cubemap mesh
-	this->renderCubeMap(this->cubemap.getMesh());
+	this->renderCubeMap(*this->cubeMapMesh);
 
 	//Light pass
 	this->lightPass();
@@ -301,49 +304,37 @@ void Graphics::render()
 
 bool Graphics::initMeshes()
 {
-	Mesh* planeMesh = new Mesh(*this);
-	planeMesh->createDefualtMesh(DefaultMesh::PLANE);
-	planeMesh->createTexture("ground.jpg");
-	planeMesh->setPosition(0.0f, -2.0f, 0.0f);
-	planeMesh->setScaling(40.0f, 1.0f, 40.0f);
-	planeMesh->setSpecularPower(0.0f);
-	this->meshes.push_back(planeMesh);
+	this->createMesh(MeshData(DefaultMesh::PLANE), "ground.jpg", Vector3(0.0f, -2.0f, 0.0f), Vector3(40.0f, 1.0f, 40.0f));
+	
+	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_blue.png", Vector3(0.0f, 5.0f, 0.0f));
+	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_green.png", Vector3(-3.0f, 0.0f, 0.0f));
+	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_purple.png", Vector3(0.0f, 0.0f, -3.0f));
+	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_yellow.png", Vector3(0.0f, 0.0f, 3.0f));
 
-	Mesh* sphereMesh = new Mesh(*this);
-	sphereMesh->createDefualtMesh(DefaultMesh::SPHERE);
-	sphereMesh->createTexture("lavarock.jpg");
-	sphereMesh->setPosition(3.0f, 0.0f, 0.0f);
-	this->meshes.push_back(sphereMesh);
+	this->createMesh(MeshData(DefaultMesh::SPHERE), "lavarock.jpg", Vector3(3.0f, 0.0f, 0.0f));
 
-	Mesh* cubeMesh = new Mesh(*this);
-	cubeMesh->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh->createTexture("texture3d_blue.png");
-	cubeMesh->setPosition(0.0f, 5.0f, 0.0f);
-	this->meshes.push_back(cubeMesh);
-
-	Mesh* cubeMesh2 = new Mesh(*this);
-	cubeMesh2->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh2->createTexture("texture3d_green.png");
-	cubeMesh2->setPosition(-3.0f, 0.0f, 0.0f);
-	this->meshes.push_back(cubeMesh2);
-
-	Mesh* cubeMesh3 = new Mesh(*this);
-	cubeMesh3->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh3->createTexture("texture3d_purple.png");
-	cubeMesh3->setPosition(0.0f, 0.0f, -3.0f);
-	this->meshes.push_back(cubeMesh3);
-
-	Mesh* cubeMesh4 = new Mesh(*this);
-	cubeMesh4->createDefualtMesh(DefaultMesh::CUBE);
-	cubeMesh4->createTexture("texture3d_yellow.png");
-	cubeMesh4->setPosition(0.0f, 0.0f, 3.0f);
-	this->meshes.push_back(cubeMesh4);
+	//Cubemap Mesh
+	this->cubeMapMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::CUBE)));
+	this->cubeMapMesh->setPosition(Vector3(0.0f, 0.0f, 0.0f));
 
 	//Lod mesh
-	this->lodMesh.createDefualtMesh(DefaultMesh::SPHERE);
-	this->lodMesh.createTexture("brick.jpg");
-	this->lodMesh.setPosition(-4.0f, 0.0f, -4.0f);
+	this->lodMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::SPHERE)));
+	this->lodMesh->setPosition(Vector3(-4.0f, 0.0f, -4.0f));
+	this->lodMesh->createTexture("brick.jpg");
 
+	return true;
+}
+
+bool Graphics::createMesh(MeshData&& newMeshData, std::string textureFile, DirectX::SimpleMath::Vector3 position,
+	DirectX::SimpleMath::Vector3 scale)
+{
+	Mesh* newMesh = new Mesh(*this, std::move(newMeshData));
+	newMesh->createTexture(textureFile);
+	newMesh->setPosition(position);
+	newMesh->setScaling(scale);
+
+	this->meshes.push_back(newMesh);
+	
 	return true;
 }
 
@@ -453,10 +444,16 @@ void Graphics::renderMesh(Mesh& mesh)
 	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
 	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
 
-	//Draw
-	this->immediateContext->DrawIndexed(
-		mesh.getIndices().size(), 0, 0
-	);
+	//Render submeshes
+	for (size_t i = 0; i < mesh.getSubmeshes().size(); i++)
+	{
+		Submesh& currentSubMesh = mesh.getSubmeshes()[i];
+
+		//Draw
+		this->immediateContext->DrawIndexed(
+			currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+		);
+	}
 
 	//rebind sampler
 	ID3D11SamplerState* nullSampler = nullptr;
@@ -503,11 +500,17 @@ void Graphics::renderCubeMap(Mesh& mesh)
 	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
 	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
 
-	//Draw
-	this->immediateContext->DrawIndexed(
-		mesh.getIndices().size(), 0, 0
-	);
+	//Render submeshes
+	for (size_t i = 0; i < mesh.getSubmeshes().size(); i++)
+	{
+		Submesh& currentSubMesh = mesh.getSubmeshes()[i];
 
+		//Draw
+		this->immediateContext->DrawIndexed(
+			currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+		);
+	}
+	
 	//rebind sampler
 	ID3D11SamplerState* nullSampler = nullptr;
 	ID3D11ShaderResourceView* nullSRV = nullptr;
@@ -655,7 +658,7 @@ void Graphics::lodPass()
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
 
 	//Update mesh first
-	this->lodMesh.update();
+	this->lodMesh->update();
 
 	//Set input layout and vertex shader
 	this->immediateContext->IASetInputLayout(this->deferred_VS.getInputLayout());
@@ -670,7 +673,7 @@ void Graphics::lodPass()
 	//Constantbuffer
 	this->tesserlingStruct.cameraPos = this->camera.getPostion();
 
- 	this->tesserlingStruct.objetPos = this->lodMesh.getPosition();
+ 	this->tesserlingStruct.objetPos = this->lodMesh->getPosition();
  	this->lodCB.updateBuffer(&this->tesserlingStruct);
 	this->immediateContext->HSSetConstantBuffers(0, 1, &this->lodCB.getBuffer());
 
@@ -683,17 +686,17 @@ void Graphics::lodPass()
 	this->immediateContext->PSSetShader(this->deferred_PS.getPS(), nullptr, 0);
 
 	//Set mvp matrix
-	DirectX::SimpleMath::Matrix m = this->lodMesh.getWorldMatrix();
+	DirectX::SimpleMath::Matrix m = this->lodMesh->getWorldMatrix();
 	this->mvpBufferStruct.worldMatrix = m.Transpose();
 	this->mvpConstantBuffer.updateBuffer(&this->mvpBufferStruct);
 
 	//Set vertex/index buffer
 	this->immediateContext->IASetVertexBuffers(
-		0, 1, &this->lodMesh.getVertexBuffer().getBuffer(), &this->lodMesh.getVertexBuffer().getStride(), &this->lodMesh.getVertexBuffer().getOffset()
+		0, 1, &this->lodMesh->getVertexBuffer().getBuffer(), &this->lodMesh->getVertexBuffer().getStride(), &this->lodMesh->getVertexBuffer().getOffset()
 	);
 
 	this->immediateContext->IASetIndexBuffer(
-		this->lodMesh.getIndexBuffer().getBuffer(), DXGI_FORMAT_R32_UINT, 0
+		this->lodMesh->getIndexBuffer().getBuffer(), DXGI_FORMAT_R32_UINT, 0
 	);
 
 	//Set vertex shader CB
@@ -701,16 +704,21 @@ void Graphics::lodPass()
 	this->immediateContext->DSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 
 	//Set Sampler and textures
-	this->immediateContext->PSSetSamplers(0, 1, &this->lodMesh.getTexture().getSamplerState());
-	this->immediateContext->PSSetShaderResources(0, 1, &this->lodMesh.getTexture().getSRV());
+	this->immediateContext->PSSetSamplers(0, 1, &this->lodMesh->getTexture().getSamplerState());
+	this->immediateContext->PSSetShaderResources(0, 1, &this->lodMesh->getTexture().getSRV());
 	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
 	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
 
-	//Draw
-	this->immediateContext->DrawIndexed(
-		this->lodMesh.getIndices().size(), 0, 0
-	);
+	for (size_t i = 0; i < this->lodMesh->getSubmeshes().size(); i++)
+	{
+		Submesh& currentSubMesh = lodMesh->getSubmeshes()[i];
 
+		//Draw
+		this->immediateContext->DrawIndexed(
+			currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+		);
+	}
+	
 	//Remove Hull and domain shader från
 	this->immediateContext->HSSetShader(nullptr, nullptr, 0);
 	this->immediateContext->DSSetShader(nullptr, nullptr, 0);
