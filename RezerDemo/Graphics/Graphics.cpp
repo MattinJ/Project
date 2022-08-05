@@ -754,7 +754,7 @@ bool Graphics::init(Window& window)
 	this->loadShaders();
 
 	//Test meshloader
-	this->meshLoader.loadModel("Plane");
+	this->meshLoader.loadModel("Cube");
 
 	//Textures
 	this->specularTexture.loadTexture("specular.png");

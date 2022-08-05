@@ -34,24 +34,18 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(InputPatch<VS_CONTROL_POINT_OUTPUT,
 {
 	HS_CONSTANT_DATA_OUTPUT output;
 
-    const int maxDetails = 20;
+    const int maxDetails = 10;
     const int minDetails = 1;
     
     //räkna ut dessa konstantera beroende på kameran
-    float distance = abs(length(cameraPos - objetPos));
-    
-    if(distance > maxDetails)
-        distance = 20;
-    
-    if(distance < minDetails)
-        distance = 1;
-    
+    float tessFactor = max(maxDetails - (length(objetPos - cameraPos)), minDetails);
+     
 	for (int i = 0; i < 3; ++i)
     {
-        output.EdgeTessFactor[i] = distance; //umber of  outer edges
+        output.EdgeTessFactor[i] = tessFactor; //umber of  outer edges
     }
 	
-    output.InsideTessFactor = distance; // number of inner triangles
+    output.InsideTessFactor = tessFactor; // number of inner triangles
 	
     return output;
 }
