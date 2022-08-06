@@ -1,4 +1,5 @@
 #include "MeshData.h"
+#include <string>
 
 using namespace DirectX;
 
@@ -6,16 +7,16 @@ MeshData::MeshData()
 {
 }
 
-MeshData::MeshData(DefaultMesh defaultMesh)
+MeshData::MeshData(DefaultMesh defaultMesh, std::string materialName)
 {
-	this->createDefualtMesh(defaultMesh);
+	this->createDefualtMesh(defaultMesh, materialName);
 }
 
 MeshData::~MeshData()
 {
 }
 
-bool MeshData::createDefualtMesh(DefaultMesh mesh)
+bool MeshData::createDefualtMesh(DefaultMesh mesh, std::string texture)
 {
 	switch (mesh)
 	{
@@ -55,19 +56,11 @@ bool MeshData::createDefualtMesh(DefaultMesh mesh)
 
 	//Add submesh
 	Submesh newSubMesh = {};
-	newSubMesh.numIndices = this->indices.size();
+	newSubMesh.numIndices = (UINT)(this->indices.size());
+	strcpy_s(newSubMesh.materialName, texture.c_str());
 	this->submeshes.push_back(newSubMesh);
-	
+
 	this->calculateNormals(mesh);
-
-	/*this->vertexBuffer.createBuffer(sizeof(Vertex),
-		sizeof(this->vertices[0]) * this->vertices.size(),
-		(void*)&this->vertices[0]);
-
-	this->indexBuffer.createBuffer(sizeof(this->indices[0]) * this->indices.size(),
-		(void*)&this->indices[0],
-		this->indices.size()
-	);*/
 
 	return true;
 }
@@ -82,9 +75,9 @@ void MeshData::calculateNormals(DefaultMesh mesh)
 		// Add flat normals to each vertex
 		for (unsigned int i = 0; i < this->indices.size(); i += 3)
 		{
-			XMVECTOR vertPos0 = XMVectorSet(this->vertices[this->indices[i + 0]].posX, this->vertices[this->indices[i + 0]].posY, this->vertices[this->indices[i + 0]].posZ, 1.0f);
-			XMVECTOR vertPos2 = XMVectorSet(this->vertices[this->indices[i + 1]].posX, this->vertices[this->indices[i + 1]].posY, this->vertices[this->indices[i + 1]].posZ, 1.0f);
-			XMVECTOR vertPos1 = XMVectorSet(this->vertices[this->indices[i + 2]].posX, this->vertices[this->indices[i + 2]].posY, this->vertices[this->indices[i + 2]].posZ, 1.0f);
+			XMVECTOR vertPos0 = XMVectorSet(this->vertices[this->indices[i + 0]].pos.x, this->vertices[this->indices[i + 0]].pos.y, this->vertices[this->indices[i + 0]].pos.z, 1.0f);
+			XMVECTOR vertPos2 = XMVectorSet(this->vertices[this->indices[i + 1]].pos.x, this->vertices[this->indices[i + 1]].pos.y, this->vertices[this->indices[i + 1]].pos.z, 1.0f);
+			XMVECTOR vertPos1 = XMVectorSet(this->vertices[this->indices[i + 2]].pos.x, this->vertices[this->indices[i + 2]].pos.y, this->vertices[this->indices[i + 2]].pos.z, 1.0f);
 
 			XMVECTOR edge1 = vertPos1 - vertPos0;
 			XMVECTOR edge2 = vertPos2 - vertPos0;
@@ -120,9 +113,9 @@ void MeshData::calculateNormals(DefaultMesh mesh)
 			// Store normal
 			XMFLOAT3 finalNormal;
 			XMStoreFloat3(&finalNormal, vec);
-			this->vertices[i].xN = finalNormal.x;
-			this->vertices[i].yN = finalNormal.y;
-			this->vertices[i].zN = finalNormal.z;
+			this->vertices[i].normal.x = finalNormal.x;
+			this->vertices[i].normal.y = finalNormal.y;
+			this->vertices[i].normal.z = finalNormal.z;
 		}
 	}
 	// Sphere normals
@@ -130,7 +123,7 @@ void MeshData::calculateNormals(DefaultMesh mesh)
 	{
 		for (unsigned int i = 0; i < this->vertices.size(); ++i)
 		{
-			XMVECTOR vec = XMVectorSet(this->vertices[i].posX, this->vertices[i].posY, this->vertices[i].posZ, 0.0f);
+			XMVECTOR vec = XMVectorSet(this->vertices[i].pos.x, this->vertices[i].pos.y, this->vertices[i].pos.z, 0.0f);
 
 			// Normalize position
 			vec = XMVector3Normalize(vec);
@@ -138,9 +131,9 @@ void MeshData::calculateNormals(DefaultMesh mesh)
 			// Store normal
 			XMFLOAT3 finalNormal;
 			XMStoreFloat3(&finalNormal, vec);
-			this->vertices[i].xN = finalNormal.x;
-			this->vertices[i].yN = finalNormal.y;
-			this->vertices[i].zN = finalNormal.z;
+			this->vertices[i].normal.x = finalNormal.x;
+			this->vertices[i].normal.y = finalNormal.y;
+			this->vertices[i].normal.z = finalNormal.z;
 		}
 	}
 }
@@ -385,8 +378,8 @@ void MeshData::createPlane(int resX, int resY)
 Vertex MeshData::makeVert(float posX, float posY, float posZ, float u, float v)
 {
 	return {
-		posX, posY, posZ,
-		0.0f, 0.0f, -1.0f,
-		u, v
+		{posX, posY, posZ},
+		{0.0f, 0.0f, -1.0f},
+		{u, v}
 	};
 }

@@ -14,7 +14,7 @@ bool VertexBuffer::createBuffer(MeshData& meshData)
 	this->stride = sizeof(Vertex);
 	this->offset = 0; 
 	
-	UINT bufferSize = sizeof(meshData.getVertices()[0]) * meshData.getVertices().size();
+	UINT bufferSize = (UINT)(sizeof(meshData.getVertices()[0]) * meshData.getVertices().size());
 
 	return Buffer::createBuffer(
 		D3D11_USAGE_DEFAULT, 

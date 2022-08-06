@@ -4,11 +4,12 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <vector>
+#include <map>
 
 #include "Buffers/ConstantBuffer.h"
-
 #include "Shaders/PixelShader.h"
 #include "Shaders/VertexShader.h"
+#include "../Application/Resources.h"
 
 #include "Light.h"
 #include "ParticleSystem.h"
@@ -16,6 +17,7 @@
 
 #include "Mesh.h"
 #include "Texture.h"
+#include "Material.h"
 
 #include "Camera.h"
 
@@ -100,9 +102,8 @@ private:
 	Light light;
 	ID3D11Buffer* cbMaterial = nullptr;
 
-	//Textures
-	Texture ambientTexture;
-	Texture specularTexture;
+	//Resource
+	Resources resources;
 
 	CubeMap cubemap;
 	MeshLoader meshLoader;
@@ -125,7 +126,6 @@ private:
 	Window* window;
 
 	//Meshes
-	std::vector<Mesh*> meshes;
 	Mesh* cubeMapMesh;
 	Mesh* lodMesh;
 
@@ -138,16 +138,14 @@ private:
 	bool defferdInit();
 	bool loadShaders();
 	bool initMeshes();
-	bool createMesh(MeshData&& newMeshData, std::string textureFile, DirectX::SimpleMath::Vector3 position, 
-		DirectX::SimpleMath::Vector3 scale = DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f));
 
 	void renderMesh(Mesh& mesh);
 	void renderCubeMap(Mesh& mesh);
 
-	void shadowMap();
-	void geometryPass();
+	void shadowMap(std::vector<Mesh*>& meshes);
+	void geometryPass(std::vector<Mesh*>& meshes);
 	void lightPass();
-	void renderCubeMapTexture();
+	void renderCubeMapTexture(std::vector<Mesh*>& meshes);
 	void lodPass();
 
 	void swapRasterState();

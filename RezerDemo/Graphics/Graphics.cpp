@@ -184,22 +184,22 @@ bool Graphics::createViews()
 	return true;
 }
 
-void Graphics::shadowMap()
+void Graphics::shadowMap(std::vector<Mesh*>& meshes)
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	this->light.renderShadowMap(this->meshes, *this->cubeMapMesh, *this->lodMesh);
+	this->light.renderShadowMap(meshes, *this->cubeMapMesh, *this->lodMesh);
 }
 
-void Graphics::geometryPass()
+void Graphics::geometryPass(std::vector<Mesh*>& meshes)
 {
 	//Set renderer targets
 	this->immediateContext->OMSetRenderTargets(BUFFER_COUNT, this->rtvArray, this->dsv);
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
 	//Meshes
-	for (size_t i = 0; i < this->meshes.size(); i++)
+	for (size_t i = 0; i < meshes.size(); i++)
 	{
-		this->renderMesh(*this->meshes[i]);
+		this->renderMesh(*meshes[i]);
 	}
 }
 
@@ -207,8 +207,8 @@ Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0), ambientTexture(*this), specularTexture(*this), particleSystem(*this), cubemap(*this),
-	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr)
+	threadX(0), threadY(0), threadZ(0), particleSystem(*this), cubemap(*this), resources(*this),
+	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(*this)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -241,11 +241,6 @@ Graphics::~Graphics()
 		this->rtvTextureArray[i]->Release();
 	}
 
-	for (int i = 0; i < this->meshes.size(); i++)
-	{
-		delete this->meshes[i];
-	}
-
 	delete this->cubeMapMesh;
 	delete this->lodMesh;
 }
@@ -267,22 +262,24 @@ void Graphics::render()
 	this->particleSystem.update();
 	this->camera.update();
 	this->light.update();
+
+	std::vector<Mesh*> meshes = this->resources.getAllMeshes();
 	
 	//Cubemap
-	this->renderCubeMapTexture();
+	this->renderCubeMapTexture(meshes);
 
 	//Update camera
 	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
 	this->mvpBufferStruct.vpMatrix = vp.Transpose();
 
 	//Shadow map
-	this->shadowMap();
+	this->shadowMap(meshes);
 
 	//Set viewport
 	this->immediateContext->RSSetViewports(1, &viewPort);
 	
 	//Geomentry Pass
-	this->geometryPass();
+	this->geometryPass(meshes);
 	this->lodPass();
 
 	//Cubemap mesh
@@ -304,37 +301,14 @@ void Graphics::render()
 
 bool Graphics::initMeshes()
 {
-	this->createMesh(MeshData(DefaultMesh::PLANE), "ground.jpg", Vector3(0.0f, -2.0f, 0.0f), Vector3(40.0f, 1.0f, 40.0f));
-	
-	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_blue.png", Vector3(0.0f, 5.0f, 0.0f));
-	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_green.png", Vector3(-3.0f, 0.0f, 0.0f));
-	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_purple.png", Vector3(0.0f, 0.0f, -3.0f));
-	this->createMesh(MeshData(DefaultMesh::CUBE), "texture3d_yellow.png", Vector3(0.0f, 0.0f, 3.0f));
+	////Load meshes from MeshLoader
+	//this->meshLoader.loadModel("Suzanne");
 
-	this->createMesh(MeshData(DefaultMesh::SPHERE), "lavarock.jpg", Vector3(3.0f, 0.0f, 0.0f));
+	//for (size_t i = 0; i < this->meshLoader.getMeshes().size(); i++)
+	//{
+	//	this->meshes.push_back(this->meshLoader.getMeshes()[i]);
+	//}
 
-	//Cubemap Mesh
-	this->cubeMapMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::CUBE)));
-	this->cubeMapMesh->setPosition(Vector3(0.0f, 0.0f, 0.0f));
-
-	//Lod mesh
-	this->lodMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::SPHERE)));
-	this->lodMesh->setPosition(Vector3(-4.0f, 0.0f, -4.0f));
-	this->lodMesh->createTexture("brick.jpg");
-
-	return true;
-}
-
-bool Graphics::createMesh(MeshData&& newMeshData, std::string textureFile, DirectX::SimpleMath::Vector3 position,
-	DirectX::SimpleMath::Vector3 scale)
-{
-	Mesh* newMesh = new Mesh(*this, std::move(newMeshData));
-	newMesh->createTexture(textureFile);
-	newMesh->setPosition(position);
-	newMesh->setScaling(scale);
-
-	this->meshes.push_back(newMesh);
-	
 	return true;
 }
 
@@ -438,16 +412,21 @@ void Graphics::renderMesh(Mesh& mesh)
 	//Set vertex shader CB
 	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 
-	//Set Sampler and textures
-	this->immediateContext->PSSetSamplers(0, 1, &mesh.getTexture().getSamplerState());
-	this->immediateContext->PSSetShaderResources(0, 1, &mesh.getTexture().getSRV());
-	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
-	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
-
 	//Render submeshes
 	for (size_t i = 0; i < mesh.getSubmeshes().size(); i++)
 	{
 		Submesh& currentSubMesh = mesh.getSubmeshes()[i];
+		Material& material = this->resources.getMaterial(currentSubMesh.materialName);
+
+		Texture& diffuseTexture = this->resources.getTexture(material.getDiffuseTexture().c_str());
+		Texture& ambientTexture = this->resources.getTexture(material.getAmbientTexture().c_str());
+		Texture& specularTexture = this->resources.getTexture(material.getSpecularTexture().c_str());
+
+		//Set Sampler and textures
+		this->immediateContext->PSSetSamplers(0, 1, &diffuseTexture.getSamplerState());
+		this->immediateContext->PSSetShaderResources(0, 1, &diffuseTexture.getSRV());			//Diffuse
+		this->immediateContext->PSSetShaderResources(1, 1, &ambientTexture.getSRV());			//Ambient
+		this->immediateContext->PSSetShaderResources(2, 1, &specularTexture.getSRV());			//Specular
 
 		//Draw
 		this->immediateContext->DrawIndexed(
@@ -493,17 +472,21 @@ void Graphics::renderCubeMap(Mesh& mesh)
 	//Set vertex shader CB
 	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 
-	//Set Sampler and textures
-	this->immediateContext->PSSetSamplers(0, 1, &mesh.getTexture().getSamplerState());
-
-	this->immediateContext->PSSetShaderResources(0, 1, &this->cubemap.getSRV());
-	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
-	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
-
 	//Render submeshes
 	for (size_t i = 0; i < mesh.getSubmeshes().size(); i++)
 	{
 		Submesh& currentSubMesh = mesh.getSubmeshes()[i];
+		Material& material = this->resources.getMaterial(currentSubMesh.materialName);
+
+		Texture& diffuseTexture = this->resources.getTexture(material.getDiffuseTexture().c_str());
+		Texture& ambientTexture = this->resources.getTexture(material.getAmbientTexture().c_str());
+		Texture& specularTexture = this->resources.getTexture(material.getSpecularTexture().c_str());
+
+		//Set Sampler and textures
+		this->immediateContext->PSSetSamplers(0, 1, &diffuseTexture.getSamplerState());
+		this->immediateContext->PSSetShaderResources(0, 1, &this->cubemap.getSRV());			//Diffuse
+		this->immediateContext->PSSetShaderResources(1, 1, &ambientTexture.getSRV());			//Ambient
+		this->immediateContext->PSSetShaderResources(2, 1, &specularTexture.getSRV());			//Specular
 
 		//Draw
 		this->immediateContext->DrawIndexed(
@@ -563,7 +546,7 @@ void Graphics::lightPass()
 	this->immediateContext->CSSetUnorderedAccessViews(0, 1, &this->nullUAV, nullptr);
 }
 
-void Graphics::renderCubeMapTexture()
+void Graphics::renderCubeMapTexture(std::vector<Mesh*>& meshes)
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	
@@ -582,13 +565,13 @@ void Graphics::renderCubeMapTexture()
 		DirectX::SimpleMath::Matrix vp = this->cubemap.getVPMatrix(i) * this->camera.getProjectionMatrix();
 		this->mvpBufferStruct.vpMatrix = vp.Transpose();
 
-		this->shadowMap();
+		this->shadowMap(meshes);
 
 		//Set viewport
 		this->immediateContext->RSSetViewports(1, &this->cubemap.getVP());
 		
 		//Geomentry Pass
-		this->geometryPass();
+		this->geometryPass(meshes);
 
 		//--------------------- Light pass ----------------------
 		//Clear renderer target view
@@ -703,15 +686,20 @@ void Graphics::lodPass()
 	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 	this->immediateContext->DSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
 
-	//Set Sampler and textures
-	this->immediateContext->PSSetSamplers(0, 1, &this->lodMesh->getTexture().getSamplerState());
-	this->immediateContext->PSSetShaderResources(0, 1, &this->lodMesh->getTexture().getSRV());
-	this->immediateContext->PSSetShaderResources(1, 1, &this->ambientTexture.getSRV());
-	this->immediateContext->PSSetShaderResources(2, 1, &this->specularTexture.getSRV());
-
 	for (size_t i = 0; i < this->lodMesh->getSubmeshes().size(); i++)
 	{
-		Submesh& currentSubMesh = lodMesh->getSubmeshes()[i];
+		Submesh& currentSubMesh = this->lodMesh->getSubmeshes()[i];
+		Material& material = this->resources.getMaterial(currentSubMesh.materialName);
+
+		Texture& diffuseTexture = this->resources.getTexture(material.getDiffuseTexture().c_str());
+		Texture& ambientTexture = this->resources.getTexture(material.getAmbientTexture().c_str());
+		Texture& specularTexture = this->resources.getTexture(material.getSpecularTexture().c_str());
+
+		//Set Sampler and textures
+		this->immediateContext->PSSetSamplers(0, 1, &diffuseTexture.getSamplerState());
+		this->immediateContext->PSSetShaderResources(0, 1, &diffuseTexture.getSRV());			//Diffuse
+		this->immediateContext->PSSetShaderResources(1, 1, &ambientTexture.getSRV());			//Ambient
+		this->immediateContext->PSSetShaderResources(2, 1, &specularTexture.getSRV());			//Specular
 
 		//Draw
 		this->immediateContext->DrawIndexed(
@@ -755,18 +743,53 @@ bool Graphics::init(Window& window)
 	this->window = &window;
 
 	this->resourceManagement();
-	this->initMeshes();
-
 	this->createViews();
 	this->defferdInit();
 	this->loadShaders();
 
-	//Test meshloader
-	this->meshLoader.loadModel("Cube");
-
 	//Textures
-	this->specularTexture.loadTexture("specular.png");
-	this->ambientTexture.loadTexture("ambient.png");
+	this->resources.addTexture("test.png");
+	this->resources.addTexture("defaultDiffuseTexture.png");
+	this->resources.addTexture("defaultAmbientTexture.png");
+	this->resources.addTexture("defaultSpecularTexture.png");
+
+	this->resources.addTexture("texture3d_blue.png");
+	this->resources.addTexture("texture3d_green.png");
+	this->resources.addTexture("texture3d_purple.png");
+	this->resources.addTexture("texture3d_yellow.png");
+
+	this->resources.addTexture("lavarock.jpg");
+	this->resources.addTexture("ground.jpg");
+	this->resources.addTexture("brick.jpg");
+	
+	//Material
+	this->resources.addMaterial("test.png");
+	this->resources.addMaterial("defaultDiffuseTexture.png");
+	
+	this->resources.addMaterial("texture3d_blue.png");
+	this->resources.addMaterial("texture3d_green.png");
+	this->resources.addMaterial("texture3d_purple.png");
+	this->resources.addMaterial("texture3d_yellow.png");
+
+	this->resources.addMaterial("lavarock.jpg");
+	this->resources.addMaterial("ground.jpg");
+	this->resources.addMaterial("brick.jpg");
+
+	//Mesh
+	this->resources.addMesh(MeshData(DefaultMesh::PLANE, "ground.jpg"), Vector3(0.0f, -2.0f, 0.0f), Vector3(40.0f, 1.0f, 40.0f));
+	this->resources.addMesh(MeshData(DefaultMesh::CUBE, "texture3d_blue.png"), Vector3(0.0f, 5.0f, 0.0f));
+	this->resources.addMesh(MeshData(DefaultMesh::CUBE, "texture3d_green.png"), Vector3(-3.0f, 0.0f, 0.0f));
+	this->resources.addMesh(MeshData(DefaultMesh::CUBE, "texture3d_purple.png"), Vector3(0.0f, 0.0f, -3.0f));
+	this->resources.addMesh(MeshData(DefaultMesh::CUBE, "texture3d_yellow.png"), Vector3(0.0f, 0.0f, 3.0f));
+	this->resources.addMesh(MeshData(DefaultMesh::SPHERE, "lavarock.jpg"), Vector3(3.0f, 0.0f, 0.0f));
+
+	//Cubemap mesh
+	this->cubeMapMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::CUBE)));
+	this->cubeMapMesh->setPosition(Vector3(0.0f, 0.0f, 0.0f));
+
+	//Lod mesh
+	this->lodMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::SPHERE, "brick.jpg")));
+	this->lodMesh->setPosition(Vector3(-4.0f, 0.0f, -4.0f));
 
 	//view port
 	this->viewPort.TopLeftX = 0.0f;

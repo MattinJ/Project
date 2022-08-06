@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <vector>
+#include <string>
 
 enum class DefaultMesh
 {
@@ -15,19 +16,9 @@ enum class DefaultMesh
 
 struct Vertex
 {
-	//Position
-	float posX;
-	float posY;
-	float posZ;
-
-	//Normal
-	float xN;
-	float yN;
-	float zN;
-
-	//UV coords
-	float u;
-	float v;
+	DirectX::XMFLOAT3 pos;
+	DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT2 uv;
 };
 
 struct Submesh
@@ -37,7 +28,6 @@ struct Submesh
 	unsigned int startIndex;
 	unsigned int numIndices;
 };
-
 
 class MeshData
 {
@@ -57,10 +47,10 @@ private:
 
 public:
 	MeshData();
-	MeshData(DefaultMesh defaultMesh);
+	MeshData(DefaultMesh defaultMesh, std::string materialName = "defaultDiffuseTexture.png");
 	virtual ~MeshData();
 
-	bool createDefualtMesh(DefaultMesh mesh);
+	bool createDefualtMesh(DefaultMesh mesh, std::string texture);
 	void calculateNormals(DefaultMesh mesh);
 
 	void addVertex(const Vertex& newVertex);

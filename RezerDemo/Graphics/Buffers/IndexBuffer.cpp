@@ -11,7 +11,7 @@ IndexBuffer::~IndexBuffer()
 
 bool IndexBuffer::createBuffer(MeshData& meshData)
 {
-    this->nrOfIndex = meshData.getIndices().size();
+    this->nrOfIndex = (UINT)(meshData.getIndices().size());
     
     UINT bufferSize = sizeof(meshData.getIndices()[0]) * this->nrOfIndex;
     
