@@ -11,6 +11,8 @@
 #include "Mesh.h"
 #include "Material.h"
 
+#include "../Application/Resources.h"
+
 class Graphics;
 
 class MeshLoader
@@ -18,6 +20,7 @@ class MeshLoader
 private:
 	
 	Graphics& graphic;
+	Resources& resources;
 	
 	std::ifstream file;
 	std::vector<DirectX::SimpleMath::Vector3> positions;
@@ -45,16 +48,15 @@ private:
 	void printObj();
 	void printMtl();
 
-	bool loadObjFile(std::string file);
+	MeshData loadObjFile(std::string file);
 	bool loadMtlFile(std::string file);
-	void createMesh();
-	void addMaterial(std::string name, std::string diffuse, std::string specular = "defaultSpecularTexture.png", std::string ambient = "defaultAmbientTexture.png", float exponent = 32.0f);
+	MeshData createMeshData();
 
 public:
-	MeshLoader(Graphics& graphic);
+	MeshLoader(Graphics& graphic, Resources& resources);
 	virtual ~MeshLoader();
 
-	bool loadModel(const std::string& fileName);
+	MeshData loadModel(const std::string& fileName);
 
 	inline std::vector<Mesh*>& getMeshes() { return this->meshes; }
 

@@ -208,7 +208,7 @@ Graphics::Graphics()
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
 	threadX(0), threadY(0), threadZ(0), particleSystem(*this), cubemap(*this), resources(*this),
-	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(*this)
+	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(nullptr)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -243,6 +243,7 @@ Graphics::~Graphics()
 
 	delete this->cubeMapMesh;
 	delete this->lodMesh;
+	delete this->meshLoader;
 }
 
 void Graphics::render()
@@ -301,9 +302,6 @@ void Graphics::render()
 
 bool Graphics::initMeshes()
 {
-	////Load meshes from MeshLoader
-	//this->meshLoader.loadModel("Suzanne");
-
 	//for (size_t i = 0; i < this->meshLoader.getMeshes().size(); i++)
 	//{
 	//	this->meshes.push_back(this->meshLoader.getMeshes()[i]);
@@ -741,6 +739,7 @@ void Graphics::swapRasterState()
 bool Graphics::init(Window& window)
 {
 	this->window = &window;
+	this->meshLoader = new MeshLoader(*this, this->resources);
 
 	this->resourceManagement();
 	this->createViews();
@@ -763,17 +762,17 @@ bool Graphics::init(Window& window)
 	this->resources.addTexture("brick.jpg");
 	
 	//Material
-	this->resources.addMaterial("test.png");
-	this->resources.addMaterial("defaultDiffuseTexture.png");
+	this->resources.addMaterial("test.png", "test.png");
+	this->resources.addMaterial("defaultDiffuseTexture.png", "defaultDiffuseTexture.png");
 	
-	this->resources.addMaterial("texture3d_blue.png");
-	this->resources.addMaterial("texture3d_green.png");
-	this->resources.addMaterial("texture3d_purple.png");
-	this->resources.addMaterial("texture3d_yellow.png");
+	this->resources.addMaterial("texture3d_blue.png", "texture3d_blue.png");
+	this->resources.addMaterial("texture3d_green.png", "texture3d_green.png");
+	this->resources.addMaterial("texture3d_purple.png", "texture3d_purple.png");
+	this->resources.addMaterial("texture3d_yellow.png", "texture3d_yellow.png");
 
-	this->resources.addMaterial("lavarock.jpg");
-	this->resources.addMaterial("ground.jpg");
-	this->resources.addMaterial("brick.jpg");
+	this->resources.addMaterial("lavarock.jpg", "lavarock.jpg");
+	this->resources.addMaterial("ground.jpg", "ground.jpg");
+	this->resources.addMaterial("brick.jpg", "brick.jpg");
 
 	//Mesh
 	this->resources.addMesh(MeshData(DefaultMesh::PLANE, "ground.jpg"), Vector3(0.0f, -2.0f, 0.0f), Vector3(40.0f, 1.0f, 40.0f));
@@ -790,6 +789,14 @@ bool Graphics::init(Window& window)
 	//Lod mesh
 	this->lodMesh = new Mesh(*this, std::move(MeshData(DefaultMesh::SPHERE, "brick.jpg")));
 	this->lodMesh->setPosition(Vector3(-4.0f, 0.0f, -4.0f));
+
+	//Models
+	MeshData suzanne = this->meshLoader->loadModel("Suzanne");
+
+	//add more meshes from models
+	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -4.0f));
+	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -8.0f));
+	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -12.0f));
 
 	//view port
 	this->viewPort.TopLeftX = 0.0f;

@@ -106,7 +106,7 @@ private:
 	Resources resources;
 
 	CubeMap cubemap;
-	MeshLoader meshLoader;
+	MeshLoader* meshLoader;
 
 	//Camera
 	Camera camera;

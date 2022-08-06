@@ -118,7 +118,7 @@ void MeshLoader::printMtl()
     }*/
 }
 
-bool MeshLoader::loadObjFile(std::string file)
+MeshData MeshLoader::loadObjFile(std::string file)
 {
     std::string line;
     std::string objPath = "Resources/Models/" + file + ".obj";
@@ -126,7 +126,7 @@ bool MeshLoader::loadObjFile(std::string file)
     UINT nrOfIndicies = 0;
     std::string m;
 
-
+    MeshData createdMeshData;
     Submesh newSubMesh = {};
 
     this->file.open(objPath);
@@ -134,7 +134,7 @@ bool MeshLoader::loadObjFile(std::string file)
     if (!this->file.is_open())
     {
         ErrorLogger::errorMessage("Failed to load file" + file + ".obj");
-        return false;
+        return createdMeshData;
     }
 
     while (std::getline(this->file, line))
@@ -222,13 +222,11 @@ bool MeshLoader::loadObjFile(std::string file)
     this->submeshes.push_back(newSubMesh);
     nrOfIndicies = 0;
 
-    this->createMesh();
-
-    //this->printObj();
+    createdMeshData = this->createMeshData();
 
     this->file.close();
 
-    return true;
+    return createdMeshData;
 }
 
 bool MeshLoader::loadMtlFile(std::string file)
@@ -278,15 +276,7 @@ bool MeshLoader::loadMtlFile(std::string file)
                 else
                     this->mTexture[2] = map[2];
 
-                this->specularExponent = std::stof(s);
-
-                Material newMat;
-                newMat.setDiffuseTexture(this->mTexture[0]);
-                newMat.setSpecularTexture(this->mTexture[1]);
-                newMat.setAmbientTexture(this->mTexture[2]);
-                newMat.setSpecularExponent(this->specularExponent);
-
-                this->materials.insert(std::pair<std::string, Material>(m, newMat));
+                this->resources.addMaterial(m, this->mTexture[0], this->mTexture[2], this->mTexture[1], this->specularExponent);
             }
         }
         else if (firstWord == "Ns") //specular exponent
@@ -322,24 +312,14 @@ bool MeshLoader::loadMtlFile(std::string file)
     else
         this->mTexture[2] = map[2];
 
-    this->specularExponent = std::stof(s);
-
-    Material newMat;
-    newMat.setDiffuseTexture(this->mTexture[0]);
-    newMat.setSpecularTexture(this->mTexture[1]);
-    newMat.setAmbientTexture(this->mTexture[2]);
-    newMat.setSpecularExponent(this->specularExponent);
-
-    this->materials.insert(std::pair<std::string, Material>(m, newMat));
-    
-    this->printMtl();
+    this->resources.addMaterial(m, this->mTexture[0], this->mTexture[2], this->mTexture[1], this->specularExponent);
 
     this->file.close();
 
     return true;
 }
 
-void MeshLoader::createMesh()
+MeshData MeshLoader::createMeshData()
 {
     MeshData meshData;
     
@@ -357,46 +337,25 @@ void MeshLoader::createMesh()
     {
         meshData.addSubMesh(this->submeshes[i]);
     }
-    
-    Mesh* mesh = new Mesh(this->graphic, std::move(meshData));
-    mesh->setPosition(DirectX::SimpleMath::Vector3(4.0f, 0.0f, -4.0f));
-    this->meshes.push_back(mesh);
+   
+    return meshData;
 }
 
-void MeshLoader::addMaterial(std::string name, std::string diffuse, std::string specular, std::string ambient, float exponent)
+MeshLoader::MeshLoader(Graphics& graphic, Resources& resources)
+    :graphic(graphic), resources(resources), specularExponent(0.0f)
 {
-    Material newMat;
-    newMat.setDiffuseTexture(diffuse);
-    newMat.setSpecularTexture(specular);
-    newMat.setAmbientTexture(ambient);
-    newMat.setSpecularExponent(exponent);
-
-    this->materials.insert(std::pair<std::string, Material>(name, newMat));
-}
-
-MeshLoader::MeshLoader(Graphics& graphic)
-    :graphic(graphic), specularExponent(0.0f)
-{
-    this->addMaterial("defaultMaterial", "defaultDiffuseTexture.png");
-    this->addMaterial("texture3d_blue", "texture3d_blue.png");
-    this->addMaterial("texture3d_green", "texture3d_green.png");
-    this->addMaterial("texture3d_purple", "texture3d_purple.png");
-    this->addMaterial("texture3d_yellow", "texture3d_yellow.png");
-    this->addMaterial("lavarock", "lavarock.jpg");
-    this->addMaterial("ground", "ground.jpg");
-    this->addMaterial("brick", "brick.jpg");
 }
 
 MeshLoader::~MeshLoader()
 {
 }
 
-bool MeshLoader::loadModel(const std::string& fileName)
+MeshData MeshLoader::loadModel(const std::string& fileName)
 {
-    this->loadObjFile(fileName);
+    MeshData loadedMeshData = this->loadObjFile(fileName);
     this->loadMtlFile(fileName);
 
-    return true;
+    return loadedMeshData;
 }
 
 Material& MeshLoader::getMaterial(const char* materialName)

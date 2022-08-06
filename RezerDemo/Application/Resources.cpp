@@ -53,12 +53,12 @@ void Resources::addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos
 
 }
 
-void Resources::addMaterial(const std::string& diffuseTextureName,
+void Resources::addMaterial(const std::string& materialName, const std::string& diffuseTextureName,
 	const std::string& ambientTextureName, const std::string& specularextureName, float exponent)
 {
-	if (this->materials.count(diffuseTextureName) > 0)
+	if (this->materials.count(materialName) > 0)
 	{
-		ErrorLogger::errorMessage(diffuseTextureName + " is already added.");
+		ErrorLogger::errorMessage(materialName + " is already added.");
 		return;
 	}
 
@@ -66,7 +66,7 @@ void Resources::addMaterial(const std::string& diffuseTextureName,
 	Material* newMaterial = new Material(diffuseTextureName, ambientTextureName, specularextureName, exponent);
 
 	// Insert material
-	this->materials.insert(std::pair<std::string, Material*>(diffuseTextureName, newMaterial));
+	this->materials.insert(std::pair<std::string, Material*>(materialName, newMaterial));
 }
 
 Texture& Resources::getTexture(const char* textureName)
