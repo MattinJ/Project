@@ -207,7 +207,7 @@ Graphics::Graphics()
 	:device(nullptr), immediateContext(nullptr), swapchain(nullptr), viewPort(), backBuffer(nullptr),
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
-	threadX(0), threadY(0), threadZ(0), particleSystem(*this), cubemap(*this), resources(*this),
+	threadX(0), threadY(0), threadZ(0), particleSystem(*this), cubemap(*this), resources(*this), quadtree(*this),
 	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(nullptr)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
@@ -281,6 +281,16 @@ void Graphics::render()
 	
 	//Geomentry Pass
 	this->geometryPass(meshes);
+	
+	//Render quadtree
+	std::vector<Mesh*> meshes2 = this->quadtree.getMeshes();
+	this->immediateContext->RSSetState(this->tesselering.getRasterWireState());
+	for (int i = 0; i < meshes2.size(); i++)
+	{
+		this->renderQuadTree(*meshes2[i]);
+	}
+	this->immediateContext->RSSetState(nullptr);
+
 	this->lodPass();
 
 	//Cubemap mesh
@@ -736,6 +746,65 @@ void Graphics::swapRasterState()
 		this->immediateContext->RSSetState(nullRST);
 }
 
+void Graphics::renderQuadTree(Mesh& mesh)
+{
+	//Update mesh first
+	mesh.update();
+
+	//Set input layout and vertex shader
+	this->immediateContext->IASetInputLayout(this->deferred_VS.getInputLayout());
+	this->immediateContext->VSSetShader(this->deferred_VS.getVS(), nullptr, 0);
+
+	//Set pixel shader
+	this->immediateContext->PSSetShader(this->deferred_PS.getPS(), nullptr, 0);
+
+	//Set mvp matrix
+	DirectX::SimpleMath::Matrix m = mesh.getWorldMatrix();
+	this->mvpBufferStruct.worldMatrix = m.Transpose();
+	this->mvpConstantBuffer.updateBuffer(&this->mvpBufferStruct);
+
+	//Set vertex/index buffer
+	this->immediateContext->IASetVertexBuffers(
+		0, 1, &mesh.getVertexBuffer().getBuffer(), &mesh.getVertexBuffer().getStride(), &mesh.getVertexBuffer().getOffset()
+	);
+
+	this->immediateContext->IASetIndexBuffer(
+		mesh.getIndexBuffer().getBuffer(), DXGI_FORMAT_R32_UINT, 0
+	);
+
+	//Set vertex shader CB
+	this->immediateContext->VSSetConstantBuffers(0, 1, &this->mvpConstantBuffer.getBuffer());
+
+	//Render submeshes
+	for (size_t i = 0; i < mesh.getSubmeshes().size(); i++)
+	{
+		Submesh& currentSubMesh = mesh.getSubmeshes()[i];
+		Material& material = this->resources.getMaterial(currentSubMesh.materialName);
+
+		Texture& diffuseTexture = this->resources.getTexture(material.getDiffuseTexture().c_str());
+		Texture& ambientTexture = this->resources.getTexture(material.getAmbientTexture().c_str());
+		Texture& specularTexture = this->resources.getTexture(material.getSpecularTexture().c_str());
+
+		//Set Sampler and textures
+		this->immediateContext->PSSetSamplers(0, 1, &diffuseTexture.getSamplerState());
+		this->immediateContext->PSSetShaderResources(0, 1, &diffuseTexture.getSRV());			//Diffuse
+		this->immediateContext->PSSetShaderResources(1, 1, &ambientTexture.getSRV());			//Ambient
+		this->immediateContext->PSSetShaderResources(2, 1, &specularTexture.getSRV());			//Specular
+
+		//Draw
+		this->immediateContext->DrawIndexed(
+			currentSubMesh.numIndices, currentSubMesh.startIndex, 0
+		);
+	}
+
+	//rebind sampler
+	ID3D11SamplerState* nullSampler = nullptr;
+	ID3D11ShaderResourceView* nullSRV = nullptr;
+
+	this->immediateContext->PSSetSamplers(0, 1, &nullSampler);
+	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
+}
+
 bool Graphics::init(Window& window)
 {
 	this->window = &window;
@@ -832,7 +901,8 @@ bool Graphics::init(Window& window)
 	//Camera
 	this->camera.init();
 
-	//Light Structure buffer
+	//Quad tree
+	this->quadtree.init();
 
 	return true;
 

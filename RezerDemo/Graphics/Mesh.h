@@ -2,6 +2,7 @@
 #include <d3d11.h>
 #include <SimpleMath.h>
 #include <vector>
+#include <DirectXCollision.h>
 
 #include "Buffers/VertexBuffer.h"
 #include "Buffers/IndexBuffer.h"
@@ -27,6 +28,8 @@ private:
 	UINT startIndex;
 
 	Texture texture;
+
+	DirectX::BoundingSphere boundingSphere;
 
 	//Matrial
 	DirectX::SimpleMath::Vector3  ambient;
@@ -70,6 +73,8 @@ public:
 	inline const UINT getStartIndex() { return this->startIndex; }
 
 	inline Texture& getTexture() { return this->texture; }
+
+	inline DirectX::BoundingSphere& getBoundingSphere() { return this->boundingSphere; }
 
 	void update();
 

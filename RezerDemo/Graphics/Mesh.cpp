@@ -11,9 +11,9 @@ void Mesh::updateWorldMatrix()
 }
 
 Mesh::Mesh(Graphics& renderer, MeshData&& meshData)
-	:vertexBuffer(renderer), indexBuffer(renderer), pos(0.0f, 0.0f, -2.0f), rot(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f),
+	:vertexBuffer(renderer), indexBuffer(renderer), pos(0.0f, 0.0f, 0.0f), rot(0.0f, 0.0f, 0.0f), scale(1.0f, 1.0f, 1.0f),
 	subMeshes(meshData.getSubMeshes()), worldMatrix(DirectX::SimpleMath::Matrix().Identity), startIndex(0), texture(renderer), 
-	ambient(0.3f, 0.3f, 0.3f), specular(1.0f, 1.0f, 1.0f), specularPower(32.0f)
+	ambient(0.3f, 0.3f, 0.3f), specular(1.0f, 1.0f, 1.0f), specularPower(32.0f), boundingSphere(XMFLOAT3(0.0f, 0.0f, 0.0f), 0.5f)
 {
 	this->updateWorldMatrix();
 	this->vertexBuffer.createBuffer(meshData);
@@ -70,4 +70,5 @@ void Mesh::setSpecularPower(float power)
 void Mesh::update()
 {
 	this->updateWorldMatrix();
+	this->boundingSphere.Center = this->pos;
 }

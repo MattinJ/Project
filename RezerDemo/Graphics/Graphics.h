@@ -24,6 +24,8 @@
 #include "Tessellering.h"
 #include "MeshLoader.h"
 
+#include "QuadTree.h"
+
 #include "../Application/Window.h"
 
 const int BUFFER_COUNT = 6;
@@ -122,6 +124,8 @@ private:
 	ConstantBuffer cubemapCB;
 	ConstantBuffer lodCB;
 
+	QuadTree quadtree;
+
 	//Window
 	Window* window;
 
@@ -150,6 +154,8 @@ private:
 
 	void swapRasterState();
 	int rasterStateValue = 1;
+
+	void renderQuadTree(Mesh& mesh);
 
 	//Private help variables.
 	float angle = 0;
