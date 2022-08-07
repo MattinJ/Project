@@ -323,10 +323,24 @@ MeshData MeshLoader::createMeshData()
 {
     MeshData meshData;
     
+    SimpleMath::Vector3 length = {0.0f, 0.0f, 0.0f};
+    
     for (size_t i = 0; i < this->vertices.size(); i++)
     {
         meshData.addVertex(this->vertices[i]);
+        SimpleMath::Vector3 temp = this->vertices[i].pos;
+        if (temp.x > length.x)
+            length.x = temp.x;
+
+        if (temp.y > length.y)
+            length.y = temp.y;
+
+        if (temp.z > length.z)
+            length.z = temp.z;
+
     }
+
+    meshData.setRadius(length.Length());
 
     for (size_t i = 0; i < this->indices.size(); i++)
     {

@@ -4,6 +4,7 @@
 #include <SimpleMath.h>
 #include <vector>
 #include "Mesh.h"
+#include <queue>
 
 class Graphics;
 
@@ -14,9 +15,12 @@ private:
 	{
 		DirectX::BoundingBox bBox;
 		DirectX::SimpleMath::Vector3 centerPos;
+		float exentsValue;
 		Node* childNodes[4];
 		std::vector<Mesh*> meshes;
 	};
+
+	const int depth = 2;
 
 	Graphics& graphic;
 
@@ -26,9 +30,8 @@ private:
 	DirectX::SimpleMath::Vector3 extents;
 	float extenstValue = 40;
 
-	void createTree(Node*& node, float extentsValue);
+	void createTree(Node*& node, int depth);
 	void deleteNodes(Node* node);
-	void addMeshToNode(Node* node, Mesh*& mesh);
 
 	void addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos = { 0.0f, 0.0f, 0.0f }, DirectX::SimpleMath::Vector3 scale = { 1.0f, 1.0f, 1.0f });
 
@@ -39,6 +42,7 @@ public:
 	~QuadTree();
 
 	bool init();
+	bool addMeshToTree(Mesh*& mesh);
 	bool render();
 
 	inline std::vector<Mesh*>& getMeshes() { return this->meshes; }

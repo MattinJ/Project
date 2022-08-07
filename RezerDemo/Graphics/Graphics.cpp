@@ -863,9 +863,9 @@ bool Graphics::init(Window& window)
 	MeshData suzanne = this->meshLoader->loadModel("Suzanne");
 
 	//add more meshes from models
-	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -4.0f));
-	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -8.0f));
-	this->resources.addMesh(std::move(suzanne), Vector3(4.0f, 0.0f, -12.0f));
+	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -4.0f));
+	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -8.0f));
+	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -12.0f));
 
 	//view port
 	this->viewPort.TopLeftX = 0.0f;
@@ -903,6 +903,16 @@ bool Graphics::init(Window& window)
 
 	//Quad tree
 	this->quadtree.init();
+	
+	std::vector<Mesh*> meshes = this->resources.getAllMeshes();
+	
+	for (size_t i = 0; i < meshes.size(); i++)
+	{
+		this->quadtree.addMeshToTree(meshes[i]);
+	}
+
+	this->quadtree.addMeshToTree(this->cubeMapMesh);
+	this->quadtree.addMeshToTree(this->lodMesh);
 
 	return true;
 

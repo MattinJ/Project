@@ -60,6 +60,8 @@ bool MeshData::createDefualtMesh(DefaultMesh mesh, std::string texture)
 	strcpy_s(newSubMesh.materialName, texture.c_str());
 	this->submeshes.push_back(newSubMesh);
 
+	this->radius = 0.5f;
+
 	this->calculateNormals(mesh);
 
 	return true;
@@ -151,6 +153,11 @@ void MeshData::addIndex(const UINT& newIndice)
 void MeshData::addSubMesh(const Submesh& newSubmes)
 {
 	this->submeshes.push_back(newSubmes);
+}
+
+void MeshData::setRadius(float radius)
+{
+	this->radius = radius;
 }
 
 void MeshData::createTriangle()

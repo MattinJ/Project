@@ -35,6 +35,7 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<UINT> indices;
 	std::vector<Submesh> submeshes;
+	float radius;
 
 	void createTriangle();
 	void createQuad();
@@ -56,6 +57,10 @@ public:
 	void addVertex(const Vertex& newVertex);
 	void addIndex(const UINT& newIndice);
 	void addSubMesh(const Submesh& newSubmes);
+	
+	void setRadius(float radius);
+	
+	inline float getRadius() { return this->radius; }
 
 	inline std::vector<Vertex>& getVertices() { return this->vertices; }
 	inline std::vector<UINT>& getIndices() { return this->indices; }

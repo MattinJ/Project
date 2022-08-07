@@ -4,68 +4,61 @@
 using namespace DirectX::SimpleMath;
 #include <iostream>
 
-void QuadTree::createTree(Node*& node, float extentsValue)
+void QuadTree::createTree(Node*& node, int depth)
 {
     Vector3 dirVectors[4] = { {-1.0f, 0.0f, -1.0f}, {1.0f, 0.0f, -1.0f }, {-1.0f, 0.0f, 1.0f}, {1.0f, 0.0f, 1.0f} };
+ 
+    std::queue<Node*> nodeQueue;
+    std::queue<Node*> nextQueue;
 
-    for (int i = 0; i < 4; i++)
+    nextQueue.push(node); //Add root
+
+    for (int i = 0; i < depth; i++)
     {
-        Node* childNode = new Node;
+        nodeQueue = nextQueue;
+        nextQueue = std::queue<Node*>{};
 
-        float newExtentsValue = extentsValue * 0.50f;
-        Vector3 newCenterPos = { dirVectors[i] * newExtentsValue * 0.50f };
-        Vector3 newExtents = { newExtentsValue, newExtentsValue, newExtentsValue };
-        Vector3 scale = { newExtentsValue, extentsValue, newExtentsValue };
-
-        childNode->centerPos = newCenterPos;
-        childNode->bBox = DirectX::BoundingBox(newCenterPos, newExtents);
-        node->childNodes[i] = childNode;
-
-        this->addMesh(MeshData(DefaultMesh::CUBE), newCenterPos, scale);
-    }
-
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
+        while (!nodeQueue.empty())
         {
-            Node* childNode = new Node;
+            Node* currentNode = nodeQueue.front();
+            nodeQueue.pop();
 
-            float newExtentsValue = extentsValue * 0.25f;
-            Vector3 newCenterPos = node->childNodes[i]->centerPos + Vector3({ dirVectors[j] * newExtentsValue * 0.50f });
-            Vector3 newExtents = { newExtentsValue, newExtentsValue, newExtentsValue };
-            Vector3 scale = { newExtentsValue, extentsValue, newExtentsValue };
+            for (int j = 0; j < 4; j++)
+            {
+                Node* newNode = new Node;
 
-            childNode->centerPos = newCenterPos;
-            childNode->bBox = DirectX::BoundingBox(newCenterPos, newExtents);
-            node->childNodes[i]->childNodes[j] = childNode;
+                for (int k = 0; k < 4; k++)
+                {
+                    newNode->childNodes[k] = nullptr;
+                }
 
-            this->addMesh(MeshData(DefaultMesh::CUBE), newCenterPos, scale);
+                float newExtentValue = currentNode->exentsValue * 0.5f;
+                Vector3 newCenterPos = currentNode->centerPos + (dirVectors[j] * newExtentValue * 0.5f);
+                Vector3 newExtent = { newExtentValue, this->extenstValue, newExtentValue };
+
+                newNode->centerPos = newCenterPos;
+                newNode->bBox = DirectX::BoundingBox(newCenterPos, newExtent);
+                newNode->exentsValue = newExtentValue;
+
+                currentNode->childNodes[j] = newNode;
+                nextQueue.push(currentNode->childNodes[j]);
+                this->addMesh(MeshData(DefaultMesh::CUBE), newCenterPos, newExtent);
+            }
         }
     }
 }
 
 void QuadTree::deleteNodes(Node* node)
 {
+ 
     for (int i = 0; i < 4; i++)
     {
-        for (int j = 0; j < 4; j++)
-        {
-            if (node->childNodes[i]->childNodes[j] != nullptr)
-                delete node->childNodes[i]->childNodes[j];
-        }
-        
         if (node->childNodes[i] != nullptr)
-            delete node->childNodes[i];
-
+            this->deleteNodes(node->childNodes[i]);
     }
-
-    if (this->rootNode != nullptr)
-        delete this->rootNode;
-}
-
-void QuadTree::addMeshToNode(Node* node, Mesh*& mesh)
-{
-    node->meshes.push_back(mesh);
+    
+    delete node;
+ 
 }
 
 void QuadTree::addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos, DirectX::SimpleMath::Vector3 scale)
@@ -100,14 +93,64 @@ bool QuadTree::init()
     
     this->extents = Vector3(this->extenstValue, this->extenstValue, this->extenstValue);
 
+    this->rootNode->exentsValue = this->extenstValue;
     this->rootNode->bBox = DirectX::BoundingBox(this->centerPosition, this->extents);
     this->rootNode->centerPos = this->centerPosition;
 
     this->addMesh(MeshData(DefaultMesh::CUBE), centerPosition, this->extents);
 
-    this->createTree(this->rootNode, this->extenstValue);
+    this->createTree(this->rootNode, this->depth);
  
-    std::cout << "Nr of meshes: " << this->meshes.size();
+    return true;
+}
+
+bool QuadTree::addMeshToTree(Mesh*& mesh)
+{
+    std::queue<Node*> nodeQueue;
+  
+    nodeQueue.push(this->rootNode);
+
+    while (!nodeQueue.empty())
+    {
+        Node* currentNode = nodeQueue.front();
+        nodeQueue.pop();
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (currentNode->childNodes[i]->bBox.Intersects(mesh->getBoundingSphere()) || currentNode->childNodes[i]->bBox.Contains(mesh->getBoundingSphere()))
+            {
+                if (currentNode->childNodes[i]->childNodes[0] == nullptr)
+                    currentNode->childNodes[i]->meshes.push_back(mesh);
+                else
+                    nodeQueue.push(currentNode->childNodes[i]);
+            }
+        }
+    }
+
+
+    //for (int i = 0; i < this->depth; i++)
+    //{
+    //    nodeQueue = nextQueue;
+    //    nextQueue = std::queue<Node*>{};
+
+    //    while (!nodeQueue.empty())
+    //    {
+    //        Node* currentNode = nodeQueue.front();
+    //        nodeQueue.pop();
+
+    //        for (int j = 0; j < 4; j++)
+    //        {
+    //            if (currentNode[j].childNodes[0] == nullptr) //Leafnode
+    //            {
+    //                if (currentNode->bBox.Intersects(mesh->getBoundingSphere()) || currentNode->bBox.Contains(mesh->getBoundingSphere()))
+    //                    currentNode->meshes.push_back(mesh);
+    //            }
+    //            else
+    //                nextQueue.push(currentNode->childNodes[j]);
+    //          
+    //        }
+    //    }
+    //}
 
     return true;
 }
