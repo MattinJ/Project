@@ -42,7 +42,7 @@ void QuadTree::createTree(Node*& node, int depth)
 
                 currentNode->childNodes[j] = newNode;
                 nextQueue.push(currentNode->childNodes[j]);
-                this->addMesh(MeshData(DefaultMesh::CUBE), newCenterPos, newExtent);
+                this->addMeshQuadTreeWireMesh(MeshData(DefaultMesh::CUBE), newCenterPos, newExtent);
             }
         }
     }
@@ -61,7 +61,7 @@ void QuadTree::deleteNodes(Node* node)
  
 }
 
-void QuadTree::addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos, DirectX::SimpleMath::Vector3 scale)
+void QuadTree::addMeshQuadTreeWireMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos, DirectX::SimpleMath::Vector3 scale)
 {
     // Create mesh
     Mesh* newMesh = new Mesh(this->graphic, std::move(newMeshData));
@@ -69,7 +69,27 @@ void QuadTree::addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos,
     newMesh->setScaling(scale);
 
     // Insert mesh
-    this->meshes.push_back(newMesh);
+    this->quadTreeWiereMeshes.push_back(newMesh);
+}
+
+void QuadTree::addMeshesToRender(std::vector<Mesh*>& nodeMeshes, std::vector<Mesh*>& renderMeshes)
+{
+    for (size_t i = 0; i < nodeMeshes.size(); i++)
+    {
+        bool addMesh = true;
+        
+        for (size_t j = 0; j < renderMeshes.size(); j++)
+        {
+            if (nodeMeshes[i] == renderMeshes[j])
+            {
+                addMesh = false;
+                break;
+            }
+        }
+
+        if (addMesh == true)
+            renderMeshes.push_back(nodeMeshes[i]);
+    }
 }
 
 QuadTree::QuadTree(Graphics& graphic)
@@ -81,9 +101,9 @@ QuadTree::~QuadTree()
 {
     this->deleteNodes(this->rootNode);
 
-    for (int i = 0; i < this->meshes.size(); i++)
+    for (int i = 0; i < this->quadTreeWiereMeshes.size(); i++)
     {
-        delete this->meshes[i];
+        delete this->quadTreeWiereMeshes[i];
     }
 }
 
@@ -97,7 +117,7 @@ bool QuadTree::init()
     this->rootNode->bBox = DirectX::BoundingBox(this->centerPosition, this->extents);
     this->rootNode->centerPos = this->centerPosition;
 
-    this->addMesh(MeshData(DefaultMesh::CUBE), centerPosition, this->extents);
+    this->addMeshQuadTreeWireMesh(MeshData(DefaultMesh::CUBE), centerPosition, this->extents);
 
     this->createTree(this->rootNode, this->depth);
  
@@ -127,32 +147,35 @@ bool QuadTree::addMeshToTree(Mesh*& mesh)
         }
     }
 
-
-    //for (int i = 0; i < this->depth; i++)
-    //{
-    //    nodeQueue = nextQueue;
-    //    nextQueue = std::queue<Node*>{};
-
-    //    while (!nodeQueue.empty())
-    //    {
-    //        Node* currentNode = nodeQueue.front();
-    //        nodeQueue.pop();
-
-    //        for (int j = 0; j < 4; j++)
-    //        {
-    //            if (currentNode[j].childNodes[0] == nullptr) //Leafnode
-    //            {
-    //                if (currentNode->bBox.Intersects(mesh->getBoundingSphere()) || currentNode->bBox.Contains(mesh->getBoundingSphere()))
-    //                    currentNode->meshes.push_back(mesh);
-    //            }
-    //            else
-    //                nextQueue.push(currentNode->childNodes[j]);
-    //          
-    //        }
-    //    }
-    //}
-
     return true;
+}
+
+std::vector<Mesh*> QuadTree::frustumCulling(DirectX::BoundingFrustum& frustum)
+{
+    std::vector<Mesh*> renderMeshes;
+    
+    std::queue<Node*> nodeQueue;
+
+    nodeQueue.push(this->rootNode);
+
+    while (!nodeQueue.empty())
+    {
+        Node* currentNode = nodeQueue.front();
+        nodeQueue.pop();
+
+        for (int i = 0; i < 4; i++)
+        {
+            if (frustum.Intersects(currentNode->childNodes[i]->bBox) || frustum.Contains(currentNode->childNodes[i]->bBox))
+            {
+                if (currentNode->childNodes[i]->childNodes[0] == nullptr)
+                    this->addMeshesToRender(currentNode->childNodes[i]->meshes, renderMeshes);
+                else
+                    nodeQueue.push(currentNode->childNodes[i]);
+            }
+        }
+    }
+    
+    return renderMeshes;
 }
 
 bool QuadTree::render()

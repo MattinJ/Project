@@ -355,9 +355,9 @@ bool Light::update()
 {
 	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
-		if (this->lights[i].lightType == 0)
+		if (this->lights[i].lightType == 1)
 		{
-			/*this->lights[0].position = camera.getPostion();
+			/*this->lights[0].position = camera.worldPosition();
 			this->lights[0].direction = camera.getTarget() - this->lights[0].position;*/
 
 			if (Input::isKeyDown(Keys::Q))

@@ -187,7 +187,7 @@ bool Graphics::createViews()
 void Graphics::shadowMap(std::vector<Mesh*>& meshes)
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	this->light.renderShadowMap(meshes, *this->cubeMapMesh, *this->lodMesh);
+	//this->light.renderShadowMap(meshes, *this->cubeMapMesh, *this->lodMesh);
 }
 
 void Graphics::geometryPass(std::vector<Mesh*>& meshes)
@@ -264,7 +264,10 @@ void Graphics::render()
 	this->camera.update();
 	this->light.update();
 
-	std::vector<Mesh*> meshes = this->resources.getAllMeshes();
+	//std::vector<Mesh*> meshes = this->resources.getAllMeshes();
+	std::vector<Mesh*> meshes = this->quadtree.frustumCulling(this->camera.getFrustum());
+	//std::cout << meshes.size() << std::endl;
+	std::cout << this->camera.getWorldPostion().x << " " << this->camera.getWorldPostion().y << " " << this->camera.getWorldPostion().z << std::endl;
 	
 	//Cubemap
 	this->renderCubeMapTexture(meshes);
@@ -283,7 +286,7 @@ void Graphics::render()
 	this->geometryPass(meshes);
 	
 	//Render quadtree
-	std::vector<Mesh*> meshes2 = this->quadtree.getMeshes();
+	std::vector<Mesh*> meshes2 = this->quadtree.getQuadTreeWireMeshes();
 	this->immediateContext->RSSetState(this->tesselering.getRasterWireState());
 	for (int i = 0; i < meshes2.size(); i++)
 	{
@@ -662,7 +665,7 @@ void Graphics::lodPass()
 	this->immediateContext->HSSetShader(this->tesselering.getHullShader(), nullptr, 0);
 
 	//Constantbuffer
-	this->tesserlingStruct.cameraPos = this->camera.getPostion();
+	this->tesserlingStruct.cameraPos = this->camera.getWorldPostion();
 
  	this->tesserlingStruct.objetPos = this->lodMesh->getPosition();
  	this->lodCB.updateBuffer(&this->tesserlingStruct);

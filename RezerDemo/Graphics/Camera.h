@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <SimpleMath.h>
 #include <DirectXMath.h>
+#include <DirectXCollision.h>
 #include <iostream>
 
 #include "Buffers/ConstantBuffer.h"
@@ -20,6 +21,8 @@ private:
 
 	Graphics& graphic;
 	
+	DirectX::BoundingFrustum boundingFrustum;
+
 	DirectX::SimpleMath::Matrix viewMatrix;
 	DirectX::SimpleMath::Matrix projectionMatrix;
 
@@ -29,8 +32,11 @@ private:
 	DirectX::XMVECTOR camTarget = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 	DirectX::XMVECTOR camUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
+	DirectX::SimpleMath::Vector3 worldPosition = DirectX::SimpleMath::Vector3(0.0f, 0.0f, -4.0f);
+
 	DirectX::XMVECTOR DefaultForward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	DirectX::XMVECTOR DefaultRight = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
+	DirectX::XMVECTOR DefaultUp = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 	DirectX::XMVECTOR camForward = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 	DirectX::XMVECTOR camRight = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f);
 
@@ -77,6 +83,10 @@ public:
 	inline const DirectX::SimpleMath::Vector3& getPostion() { return this->camPosition; }
 	inline const DirectX::SimpleMath::Vector3& getTarget() { return this->camTarget; }
 	inline const DirectX::SimpleMath::Vector3& getUpDirection() { return this->camUp; }
+
+	inline DirectX::SimpleMath::Vector3& getWorldPostion() { return this->worldPosition; }
+
+	inline DirectX::BoundingFrustum& getFrustum() { return this->boundingFrustum; }
 
 	inline const float getSpeed() { return this->speed; }
 	inline const float getSens() { return this->sens; }

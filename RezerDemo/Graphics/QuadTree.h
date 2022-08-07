@@ -33,9 +33,10 @@ private:
 	void createTree(Node*& node, int depth);
 	void deleteNodes(Node* node);
 
-	void addMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos = { 0.0f, 0.0f, 0.0f }, DirectX::SimpleMath::Vector3 scale = { 1.0f, 1.0f, 1.0f });
+	void addMeshQuadTreeWireMesh(MeshData&& newMeshData, DirectX::SimpleMath::Vector3 pos = { 0.0f, 0.0f, 0.0f }, DirectX::SimpleMath::Vector3 scale = { 1.0f, 1.0f, 1.0f });
+	void addMeshesToRender(std::vector<Mesh*>& nodeMeshes, std::vector<Mesh*>& renderMeshes);
 
-	std::vector<Mesh*> meshes;
+	std::vector<Mesh*> quadTreeWiereMeshes;
 
 public:
 	QuadTree(Graphics& graphic);
@@ -43,8 +44,9 @@ public:
 
 	bool init();
 	bool addMeshToTree(Mesh*& mesh);
+	std::vector<Mesh*> frustumCulling(DirectX::BoundingFrustum & frustum);
 	bool render();
 
-	inline std::vector<Mesh*>& getMeshes() { return this->meshes; }
+	inline std::vector<Mesh*>& getQuadTreeWireMeshes() { return this->quadTreeWiereMeshes; }
 };
 

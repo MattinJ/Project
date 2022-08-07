@@ -23,6 +23,10 @@ void Camera::updateCamera()
 	this->camPosition += this->moveBackForward * this->camForward;
 	this->camPosition += this->moveUpDown * this->camUp;
 
+	this->worldPosition += this->moveLeftRight * DefaultRight;
+	this->worldPosition += this->moveBackForward * this->DefaultForward;
+	this->worldPosition += this->moveUpDown * this->DefaultUp;
+
 	this->moveLeftRight = 0.0f;
 	this->moveBackForward = 0.0f;
 	this->moveUpDown = 0.0f;
@@ -30,7 +34,14 @@ void Camera::updateCamera()
 	this->camTarget = this->camPosition + this->camTarget;
 
 	this->viewMatrix = XMMatrixLookAtLH(this->camPosition, this->camTarget, this->camUp);
-	
+
+	//update frustum
+	this->boundingFrustum.CreateFromMatrix(this->boundingFrustum, this->projectionMatrix);
+	this->boundingFrustum.Transform(this->boundingFrustum, this->viewMatrix);
+	this->boundingFrustum.Origin = this->worldPosition;
+
+	this->boundingFrustum.Orientation.
+
 }
 
 void Camera::move()
@@ -69,11 +80,19 @@ void Camera::move()
 
 Camera::Camera(Graphics& graphic)
 	:graphic(graphic), viewMatrix(DirectX::SimpleMath::Matrix::Identity), projectionMatrix(DirectX::SimpleMath::Matrix::Identity),
-	fov(90.0f), aspectRatio(float(s_resolusionX / s_resolusionY)), nearPlane(0.5f), farPlane(100.0f), speed(10.0), sens(0.01f), constantBuffer(graphic, "Camera pos CB")
+	fov(90.0f), aspectRatio(float(s_resolusionX / s_resolusionY)), nearPlane(0.5f), farPlane(100.0f), speed(10.0), sens(0.01f), 
+	constantBuffer(graphic, "Camera pos CB")
 
 {
 	this->projectionMatrix = XMMatrixPerspectiveFovLH(this->fov, this->aspectRatio, this->nearPlane, this->farPlane);
 	
+	DirectX::BoundingFrustum frustum(this->projectionMatrix);
+	frustum.Transform(frustum, this->viewMatrix);
+	
+	this->boundingFrustum.Origin = this->worldPosition;
+
+	this->boundingFrustum = frustum;
+
 	this->updateCamera();
 }
 
