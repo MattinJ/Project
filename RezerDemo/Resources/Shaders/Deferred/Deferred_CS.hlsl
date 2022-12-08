@@ -16,21 +16,13 @@ cbuffer LightMatirx : register(b0)
     matrix lightVP;
 }
 
-cbuffer MaterialBuffer : register(b1)
-{
-    float4 test1;
-    float4 test2;
-    float3 test3;
-    float test4;
-};
-
-cbuffer camera : register(b2)
+cbuffer camera : register(b1)
 {
     float3 cameraPos;
     float pad;
 };
 
-cbuffer cubemapCb : register(b3)
+cbuffer cubemapCb : register(b2)
 {
     int cubeIndex;
     int backBuffer;
@@ -106,25 +98,21 @@ void main(uint3 DTid : SV_DispatchThreadID)
     //Set ambient to defualt color.
     float4 ambientColor = ambient[DTid.xy];
     
-    for (uint i = 0; i < 1; i++)
+    for (uint i = 0; i < 4; i++)
     {
         if (buffer[i].lightType == 0) //Directional
         {
             lightDir = -buffer[i].lightDir;
             lightIntensity = saturate(dot(normals[DTid.xy].xyz, lightDir));
             
-                
-            if (lightIntensity > 0.0f)
-            {
-                //Calculate diffuse
-                lightColor += diffuseColor * lightIntensity * buffer[i].lightColor;
+            //Calculate diffuse
+            lightColor += diffuseColor * lightIntensity * buffer[i].lightColor;
             
-                //Calculate specular
-                reflection = normalize(reflect(-lightDir, normals[DTid.xy].xyz));
-                specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+            //Calculate specular
+            reflection = normalize(reflect(-lightDir, normals[DTid.xy].xyz));
+            specularIntensity = float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
                 
-                lightColor += specularIntensity;
-            }
+            lightColor += specularIntensity;
             
             //Calculate shadow
             shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
@@ -142,34 +130,34 @@ void main(uint3 DTid : SV_DispatchThreadID)
             if (distance > buffer[i].lightRange)
                 continue;
             
-            lightIntensity = saturate(dot(pixelToLight, normals[DTid.xy].xyz));
-            lightDir = normalize(buffer[i].lightDir);
+            lightIntensity = dot(pixelToLight, normals[DTid.xy].xyz);
             
-            if (lightIntensity > 0.0f)
+            if(lightIntensity > 0.0f)
             {
+                lightDir = normalize(buffer[i].lightDir);
+            
                 //Calculate diffuse
-                lightColor += diffuseColor * lightIntensity * buffer[i].lightColor;
+                lightColor += diffuseColor * buffer[i].lightColor;
+                
+                //Calculate attuentions
+                lightColor /= (buffer[i].lightAtt[0] + (buffer[i].lightAtt[1] * distance)) + (buffer[i].lightAtt[2] * (distance * distance));
                 
                 //Calculate cone cutoff
                 lightColor *= pow(max(dot(-pixelToLight, buffer[i].lightDir), 0.0f), buffer[i].lightCone);
                 
                 //Calculate specular
-                reflection = normalize(reflect(lightDir, normals[DTid.xy].xyz));
-                lightColor += float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
+                //reflection = normalize(reflect(lightDir, normals[DTid.xy].xyz));
+                //lightColor += float4(specular[DTid.xy].xyz, 1.0f) * pow(saturate(dot(reflection, viewDir)), specular[DTid.xy].w);
                 //lightColor += specularIntensity;
-                
-                //Calculate attuentions
-                lightColor /= (buffer[i].lightAtt[0] + (buffer[i].lightAtt[1] * distance)) + (buffer[i].lightAtt[2] * (distance * distance));
-     
-            }
-            
+  
+            }        
             shadowFactor = shadowCalc(worldPos[DTid.xy].xyz, i);
-            lightColor *= shadowFactor;
+            //lightColor *= shadowFactor;         
 
         }
     }
     
-    output[DTid.xy] = saturate(ambientColor + lightColor);
+    output[DTid.xy] = saturate(float4(ambientColor.xyz + lightColor.xyz, 1.0f));
     //output[DTid.xy] = diffuse[DTid.xy];
     //output[DTid.xy] = float4(buffer[0].lightType, 0.0f, 0.0f, 1.0f);
     //output[DTid.xy] = float4(buffer[1].lightPos, 1.0f);

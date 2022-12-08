@@ -45,7 +45,6 @@ public:
 	bool init();
 	bool addMeshToTree(Mesh*& mesh);
 	std::vector<Mesh*> frustumCulling(DirectX::BoundingFrustum & frustum);
-	bool render();
 
 	inline std::vector<Mesh*>& getQuadTreeWireMeshes() { return this->quadTreeWiereMeshes; }
 };

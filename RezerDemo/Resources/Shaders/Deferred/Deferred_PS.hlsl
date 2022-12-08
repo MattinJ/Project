@@ -16,6 +16,12 @@ struct PS_OUTPUT
     float4 out_specular : SV_Target4;
 };
 
+cbuffer MaterialBuffer : register(b0)
+{
+    float specularPower;
+    float3 pad3;
+};
+
 SamplerState objSamplerState : register(s0); //Our sampler from sampler state
 
 Texture2D diffuseTexture : register(t0); //Our data from texture.

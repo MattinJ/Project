@@ -355,6 +355,25 @@ MeshData MeshLoader::createMeshData()
     return meshData;
 }
 
+void MeshLoader::clearData()
+{
+    this->positions.clear();
+    this->normals.clear();
+    this->uvs.clear();
+    this->faces.clear();
+    this->mTexture[0] = "";
+    this->mTexture[1] = "";
+    this->mTexture[2] = "";
+    this->specularExponent = 0;
+    
+    this->vertices.clear();
+    this->indices.clear();
+    this->submeshes.clear();
+
+    this->materials.clear();
+    this->meshes.clear();
+}
+
 MeshLoader::MeshLoader(Graphics& graphic, Resources& resources)
     :graphic(graphic), resources(resources), specularExponent(0.0f)
 {
@@ -366,6 +385,7 @@ MeshLoader::~MeshLoader()
 
 MeshData MeshLoader::loadModel(const std::string& fileName)
 {
+    this->clearData();
     MeshData loadedMeshData = this->loadObjFile(fileName);
     this->loadMtlFile(fileName);
 

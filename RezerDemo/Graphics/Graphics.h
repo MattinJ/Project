@@ -41,10 +41,8 @@ private:
 
 	struct MaterialStruct
 	{
-		DirectX::XMFLOAT4 ambient;
-		DirectX::XMFLOAT4 diffuse;
-		DirectX::XMFLOAT3 specular;
 		float specularPower;
+		DirectX::XMFLOAT3 pad3;
 	} materialBufferStruct{};
 
 	struct CubeMapBuffer
@@ -112,6 +110,7 @@ private:
 
 	//Camera
 	Camera camera;
+	Camera secondCamera;
 	ConstantBuffer cameraPos;
 	ID3D11Buffer* cameraBuff = nullptr;
 
@@ -157,6 +156,10 @@ private:
 
 	void renderQuadTree(Mesh& mesh);
 
+	bool renderWithCameras(Camera& camera);
+
+	int cameraDebug = -1;
+	
 	//Private help variables.
 	float angle = 0;
 

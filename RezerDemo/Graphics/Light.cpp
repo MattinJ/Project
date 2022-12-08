@@ -23,8 +23,8 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 	}
 	case LightType::SPOT:
 	{
-		light.range = 20.0f;
-		light.cone = 20.0f;
+		light.range = 10.0f;
+		light.cone = 40.0f;
 		light.att = DirectX::SimpleMath::Vector3(0.4f, 0.02f, 0.0f);
 		light.lightType = 1;
 		break;
@@ -41,11 +41,11 @@ bool Light::createLight(LightType type, DirectX::SimpleMath::Vector3 pos, Direct
 
 bool Light::initLights()
 {
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.0f));
 	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
-	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.5f, -1.0f, 0.0f));
-	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(-0.5f, -1.0f, 0.0f));
-	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.5f));
-	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.5f));
 	
 	return true;
 }
@@ -63,12 +63,12 @@ bool Light::initBuffer()
 	bufferDesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	bufferDesc.StructureByteStride = sizeof(LightStruct);
 
-	D3D11_SUBRESOURCE_DATA subData = {};
+	/*D3D11_SUBRESOURCE_DATA subData = {};
 	subData.pSysMem = lights.data();
 	subData.SysMemPitch = 0;
-	subData.SysMemSlicePitch = 0;
+	subData.SysMemSlicePitch = 0;*/
 
-	HRESULT hr = this->graphic.getDevice()->CreateBuffer(&bufferDesc, &subData, &this->strucutreBuffer);
+	HRESULT hr = this->graphic.getDevice()->CreateBuffer(&bufferDesc, nullptr, &this->strucutreBuffer);
 
 	if (FAILED(hr))
 	{

@@ -187,7 +187,9 @@ bool Graphics::createViews()
 void Graphics::shadowMap(std::vector<Mesh*>& meshes)
 {
 	this->immediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	//this->light.renderShadowMap(meshes, *this->cubeMapMesh, *this->lodMesh);
+	
+	if(meshes.size() > 3)
+		this->light.renderShadowMap(meshes, *this->cubeMapMesh, *this->lodMesh);
 }
 
 void Graphics::geometryPass(std::vector<Mesh*>& meshes)
@@ -201,6 +203,7 @@ void Graphics::geometryPass(std::vector<Mesh*>& meshes)
 	{
 		this->renderMesh(*meshes[i]);
 	}
+	
 }
 
 Graphics::Graphics()
@@ -208,7 +211,7 @@ Graphics::Graphics()
 	deferred_VS(*this), deferred_PS(*this), window(), camera(*this), light(*this), cubemapCB(*this, "cubemap CB"),
 	mvpConstantBuffer(*this, "MVP CB"), materialCB(*this, "Matieral CB"), cameraPos(*this, "Camera pos CB"),
 	threadX(0), threadY(0), threadZ(0), particleSystem(*this), cubemap(*this), resources(*this), quadtree(*this),
-	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(nullptr)
+	tesselering(*this), lodCB(*this, ("LOD CB")), cubeMapMesh(nullptr), lodMesh(nullptr), meshLoader(nullptr), secondCamera(*this)
 {
 	for (int i = 0; i < BUFFER_COUNT; i++)
 	{
@@ -248,69 +251,20 @@ Graphics::~Graphics()
 
 void Graphics::render()
 {
-	//this->swapRasterState();
+	if (Input::isKeyJustPressed(Keys::C))
+		this->cameraDebug *= -1;
 	
-	//Clear screen.
-	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	for (int i = 0; i < BUFFER_COUNT; i++)
+	
+	if (this->cameraDebug != 1)
 	{
-		this->immediateContext->ClearRenderTargetView(this->rtvArray[i], clearColor);
+		this->camera.update();
+		this->renderWithCameras(this->camera);
 	}
-	this->immediateContext->ClearDepthStencilView(this->dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-	//Update
-	this->particleSystem.update();
-	this->camera.update();
-	this->light.update();
-
-	//std::vector<Mesh*> meshes = this->resources.getAllMeshes();
-	std::vector<Mesh*> meshes = this->quadtree.frustumCulling(this->camera.getFrustum());
-	//std::cout << meshes.size() << std::endl;
-	std::cout << this->camera.getWorldPostion().x << " " << this->camera.getWorldPostion().y << " " << this->camera.getWorldPostion().z << std::endl;
-	
-	//Cubemap
-	this->renderCubeMapTexture(meshes);
-
-	//Update camera
-	DirectX::SimpleMath::Matrix vp = this->camera.getViewMatrix() * this->camera.getProjectionMatrix();
-	this->mvpBufferStruct.vpMatrix = vp.Transpose();
-
-	//Shadow map
-	this->shadowMap(meshes);
-
-	//Set viewport
-	this->immediateContext->RSSetViewports(1, &viewPort);
-	
-	//Geomentry Pass
-	this->geometryPass(meshes);
-	
-	//Render quadtree
-	std::vector<Mesh*> meshes2 = this->quadtree.getQuadTreeWireMeshes();
-	this->immediateContext->RSSetState(this->tesselering.getRasterWireState());
-	for (int i = 0; i < meshes2.size(); i++)
+	else
 	{
-		this->renderQuadTree(*meshes2[i]);
+		this->secondCamera.update();
+		this->renderWithCameras(this->secondCamera);
 	}
-	this->immediateContext->RSSetState(nullptr);
-
-	this->lodPass();
-
-	//Cubemap mesh
-	this->renderCubeMap(*this->cubeMapMesh);
-
-	//Light pass
-	this->lightPass();
-
-	//Set rtv backbuffer
-	this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
-
-	//Particles
-	this->particleSystem.render(this->camera);
-
-	//Unbind rtv
-	this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);
-
 }
 
 bool Graphics::initMeshes()
@@ -433,6 +387,11 @@ void Graphics::renderMesh(Mesh& mesh)
 		Texture& ambientTexture = this->resources.getTexture(material.getAmbientTexture().c_str());
 		Texture& specularTexture = this->resources.getTexture(material.getSpecularTexture().c_str());
 
+		//Material
+		this->materialBufferStruct.specularPower = material.getSpecularExponent();
+		this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
+		this->immediateContext->PSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
+
 		//Set Sampler and textures
 		this->immediateContext->PSSetSamplers(0, 1, &diffuseTexture.getSamplerState());
 		this->immediateContext->PSSetShaderResources(0, 1, &diffuseTexture.getSRV());			//Diffuse
@@ -536,18 +495,13 @@ void Graphics::lightPass()
 	//Set constant buffers
 	this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
 
-	//Material
-	//this->materialCB.updateBuffer(&this->materialBufferStruct);
-	this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
-	this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
-
 	//Camera
-	this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
+	this->immediateContext->CSSetConstantBuffers(1, 1, &this->camera.getConstantBuffer().getBuffer());
 
 	this->cubemapStruct.index = 0;
 	this->cubemapStruct.backBuffer = 0;
 	this->cubemapCB.updateBuffer(&cubemapStruct);
-	this->immediateContext->CSSetConstantBuffers(3, 1, &this->cubemapCB.getBuffer());
+	this->immediateContext->CSSetConstantBuffers(2, 1, &this->cubemapCB.getBuffer());
 
 	//Dispatch
 	this->immediateContext->Dispatch(this->threadX, this->threadY, this->threadZ);
@@ -606,10 +560,6 @@ void Graphics::renderCubeMapTexture(std::vector<Mesh*>& meshes)
 		//Set constant buffers
 		this->immediateContext->CSSetConstantBuffers(0, 1, &this->light.getShadowMapMVPConstnantBuffer().getBuffer());
 
-		//Material
-		this->materialCB.createBuffer(sizeof(this->materialBufferStruct), sizeof(MaterialStruct), &materialBufferStruct);
-		this->immediateContext->CSSetConstantBuffers(1, 1, &this->materialCB.getBuffer());
-
 		//Camera
 		this->immediateContext->CSSetConstantBuffers(2, 1, &this->camera.getConstantBuffer().getBuffer());
 
@@ -665,7 +615,7 @@ void Graphics::lodPass()
 	this->immediateContext->HSSetShader(this->tesselering.getHullShader(), nullptr, 0);
 
 	//Constantbuffer
-	this->tesserlingStruct.cameraPos = this->camera.getWorldPostion();
+	this->tesserlingStruct.cameraPos = this->camera.getPostion();
 
  	this->tesserlingStruct.objetPos = this->lodMesh->getPosition();
  	this->lodCB.updateBuffer(&this->tesserlingStruct);
@@ -808,6 +758,70 @@ void Graphics::renderQuadTree(Mesh& mesh)
 	this->immediateContext->PSSetShaderResources(0, 1, &nullSRV);
 }
 
+bool Graphics::renderWithCameras(Camera& camera)
+{
+	//Clear screen.
+	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	for (int i = 0; i < BUFFER_COUNT; i++)
+	{
+		this->immediateContext->ClearRenderTargetView(this->rtvArray[i], clearColor);
+	}
+	this->immediateContext->ClearDepthStencilView(this->dsv, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	//Update
+	this->particleSystem.update();
+	this->light.update();
+
+	//std::vector<Mesh*> meshes = this->resources.getAllMeshes();
+	std::vector<Mesh*> meshes = this->quadtree.frustumCulling(this->camera.getFrustum());
+	std::cout << meshes.size() << std::endl;
+
+	//Cubemap
+	this->renderCubeMapTexture(meshes);
+
+	//Update camera
+	DirectX::SimpleMath::Matrix vp = camera.getViewMatrix() * camera.getProjectionMatrix();
+	this->mvpBufferStruct.vpMatrix = vp.Transpose();
+
+	//Shadow map
+	this->shadowMap(meshes);
+
+	//Set viewport
+	this->immediateContext->RSSetViewports(1, &viewPort);
+
+	//Geomentry Pass
+	this->geometryPass(meshes);
+
+	//Render quadtree wire
+	std::vector<Mesh*> meshes2 = this->quadtree.getQuadTreeWireMeshes();
+	this->immediateContext->RSSetState(this->tesselering.getRasterWireState());
+	for (int i = 0; i < meshes2.size(); i++)
+	{
+		this->renderQuadTree(*meshes2[i]);
+	}
+	this->immediateContext->RSSetState(nullptr);
+
+	this->lodPass();
+
+	//Cubemap mesh
+	this->renderCubeMap(*this->cubeMapMesh);
+
+	//Light pass
+	this->lightPass();
+
+	//Set rtv backbuffer
+	this->immediateContext->OMSetRenderTargets(1, &this->rtvBackBuffer, this->dsv);
+
+	//Particles
+	this->particleSystem.render(this->camera);
+
+	//Unbind rtv
+	this->immediateContext->OMSetRenderTargets(1, this->nullRTVarray, nullptr);
+
+	return true;
+}
+
 bool Graphics::init(Window& window)
 {
 	this->window = &window;
@@ -823,6 +837,7 @@ bool Graphics::init(Window& window)
 	this->resources.addTexture("defaultDiffuseTexture.png");
 	this->resources.addTexture("defaultAmbientTexture.png");
 	this->resources.addTexture("defaultSpecularTexture.png");
+	this->resources.addTexture("noSpecular.png");
 
 	this->resources.addTexture("texture3d_blue.png");
 	this->resources.addTexture("texture3d_green.png");
@@ -843,7 +858,7 @@ bool Graphics::init(Window& window)
 	this->resources.addMaterial("texture3d_yellow.png", "texture3d_yellow.png");
 
 	this->resources.addMaterial("lavarock.jpg", "lavarock.jpg");
-	this->resources.addMaterial("ground.jpg", "ground.jpg");
+	this->resources.addMaterial("ground.jpg", "ground.jpg", "defaultAmbientTexture.png", "noSpecular.png");
 	this->resources.addMaterial("brick.jpg", "brick.jpg");
 
 	//Mesh
@@ -864,8 +879,11 @@ bool Graphics::init(Window& window)
 
 	//Models
 	MeshData suzanne = this->meshLoader->loadModel("Suzanne");
+	MeshData ground = this->meshLoader->loadModel("Plane");
+
 
 	//add more meshes from models
+	//this->resources.addMesh(std::move(ground), Vector3(0.0f, -2.0f, 0.0f), Vector3(40.0f, 1.0f, 40.0f));
 	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -4.0f));
 	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -8.0f));
 	this->resources.addMesh(std::move(suzanne), Vector3(8.0f, 0.0f, -12.0f));
@@ -896,13 +914,9 @@ bool Graphics::init(Window& window)
 	this->particleSystem.setStartPosition(Vector3(0.0f, 0.0f, 0.0f));
 	this->particleSystem.init();
 
-	//Light material
-	this->materialBufferStruct.ambient = DirectX::XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f);
-	this->materialBufferStruct.specular = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
-	this->materialBufferStruct.specularPower = 32.0f;
-
 	//Camera
 	this->camera.init();
+	this->secondCamera.init();
 
 	//Quad tree
 	this->quadtree.init();
@@ -914,8 +928,8 @@ bool Graphics::init(Window& window)
 		this->quadtree.addMeshToTree(meshes[i]);
 	}
 
-	this->quadtree.addMeshToTree(this->cubeMapMesh);
-	this->quadtree.addMeshToTree(this->lodMesh);
+	//this->quadtree.addMeshToTree(this->cubeMapMesh);
+	//this->quadtree.addMeshToTree(this->lodMesh);
 
 	return true;
 

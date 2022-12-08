@@ -185,7 +185,7 @@ void ParticleSystem::render(Camera& camera)
 	immediateContext->PSSetShader(this->particle_PS.getPS(), nullptr, 0);
 
 	//Set partcile buffer
-	this->particleSystemStruct.cameraPos = camera.getWorldPostion();
+	this->particleSystemStruct.cameraPos = camera.getPostion();
 	this->particlesystemCB.updateBuffer(&this->particleSystemStruct);
 
 	//Set vertex/index buffer

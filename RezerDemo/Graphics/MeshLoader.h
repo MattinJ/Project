@@ -52,6 +52,8 @@ private:
 	bool loadMtlFile(std::string file);
 	MeshData createMeshData();
 
+	void clearData();
+
 public:
 	MeshLoader(Graphics& graphic, Resources& resources);
 	virtual ~MeshLoader();

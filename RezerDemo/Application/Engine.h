@@ -4,6 +4,7 @@
 
 #include "Window.h"
 #include "../Graphics/Graphics.h"
+#include "../Graphics/Camera.h"
 
 class Engine
 {

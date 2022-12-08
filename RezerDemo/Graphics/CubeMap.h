@@ -39,7 +39,6 @@ private:
 	void initVP();
 	bool initShaders();
 	bool initViews();
-
 public:
 	CubeMap(Graphics& graphic);
 	~CubeMap();

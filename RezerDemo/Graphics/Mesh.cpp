@@ -20,7 +20,8 @@ Mesh::Mesh(Graphics& renderer, MeshData&& meshData)
 	this->indexBuffer.createBuffer(meshData);
 
 	this->boundingSphere.Center = XMFLOAT3(0.0f, 0.0f, 0.0f);
-	this->boundingSphere.Radius = meshData.getRadius();
+	//this->boundingSphere.Radius = meshData.getRadius();
+	this->boundingSphere.Radius = 1.0f;
 }
 
 Mesh::~Mesh()

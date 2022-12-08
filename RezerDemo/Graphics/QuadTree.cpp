@@ -73,11 +73,15 @@ void QuadTree::addMeshQuadTreeWireMesh(MeshData&& newMeshData, DirectX::SimpleMa
 }
 
 void QuadTree::addMeshesToRender(std::vector<Mesh*>& nodeMeshes, std::vector<Mesh*>& renderMeshes)
-{
+{   
+    if (nodeMeshes.size() <= 0)
+        return;
+    
     for (size_t i = 0; i < nodeMeshes.size(); i++)
     {
         bool addMesh = true;
         
+        //Check if mesh already exist
         for (size_t j = 0; j < renderMeshes.size(); j++)
         {
             if (nodeMeshes[i] == renderMeshes[j])
@@ -139,7 +143,7 @@ bool QuadTree::addMeshToTree(Mesh*& mesh)
         {
             if (currentNode->childNodes[i]->bBox.Intersects(mesh->getBoundingSphere()) || currentNode->childNodes[i]->bBox.Contains(mesh->getBoundingSphere()))
             {
-                if (currentNode->childNodes[i]->childNodes[0] == nullptr)
+                if (currentNode->childNodes[i]->childNodes[0] == nullptr) //leaf node
                     currentNode->childNodes[i]->meshes.push_back(mesh);
                 else
                     nodeQueue.push(currentNode->childNodes[i]);
@@ -176,9 +180,4 @@ std::vector<Mesh*> QuadTree::frustumCulling(DirectX::BoundingFrustum& frustum)
     }
     
     return renderMeshes;
-}
-
-bool QuadTree::render()
-{
-    return false;
 }
