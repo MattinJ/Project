@@ -28,7 +28,7 @@ private:
 
 	DirectX::SimpleMath::Vector3 centerPosition;
 	DirectX::SimpleMath::Vector3 extents;
-	float extenstValue = 40;
+	float extenstValue = 20;
 
 	void createTree(Node*& node, int depth);
 	void deleteNodes(Node* node);

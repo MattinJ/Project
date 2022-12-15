@@ -27,10 +27,12 @@ void Camera::updateDirectionalVectors()
 void Camera::updateCamera()
 {
 	this->viewMatrix = XMMatrixLookToLH(this->position, this->forwardVec, this->upDirection);
-	
+	XMVECTOR determinant;
+	XMMATRIX invViewMatrix = XMMatrixInverse(&determinant, this->viewMatrix);
+
 	//update frustum
 	this->boundingFrustum.CreateFromMatrix(this->boundingFrustum, this->projectionMatrix);
-	this->boundingFrustum.Transform(this->boundingFrustum, XMMatrixInverse(nullptr, this->viewMatrix));
+	this->boundingFrustum.Transform(this->boundingFrustum, invViewMatrix);
 	//this->boundingFrustum.Origin = this->position;
 
 	

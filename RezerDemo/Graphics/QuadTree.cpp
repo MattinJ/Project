@@ -33,7 +33,7 @@ void QuadTree::createTree(Node*& node, int depth)
                 }
 
                 float newExtentValue = currentNode->exentsValue * 0.5f;
-                Vector3 newCenterPos = currentNode->centerPos + (dirVectors[j] * newExtentValue * 0.5f);
+                Vector3 newCenterPos = currentNode->centerPos + (dirVectors[j] * newExtentValue);
                 Vector3 newExtent = { newExtentValue, this->extenstValue, newExtentValue };
 
                 newNode->centerPos = newCenterPos;
@@ -66,7 +66,7 @@ void QuadTree::addMeshQuadTreeWireMesh(MeshData&& newMeshData, DirectX::SimpleMa
     // Create mesh
     Mesh* newMesh = new Mesh(this->graphic, std::move(newMeshData));
     newMesh->setPosition(pos);
-    newMesh->setScaling(scale);
+    newMesh->setScaling(scale * 2);
 
     // Insert mesh
     this->quadTreeWiereMeshes.push_back(newMesh);

@@ -56,7 +56,7 @@ void Mesh::setRotation(DirectX::SimpleMath::Vector3 rot)
 void Mesh::setScaling(DirectX::SimpleMath::Vector3 scale)
 {
 	this->scale = scale;
-	this->boundingSphere.Radius =  scale.x * 0.5;
+	//this->boundingSphere.Radius =  scale.x * 0.5;
 }
 
 void Mesh::setStartIndex(unsigned int index)
