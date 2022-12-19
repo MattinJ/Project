@@ -203,6 +203,19 @@ void Graphics::geometryPass(std::vector<Mesh*>& meshes)
 	{
 		this->renderMesh(*meshes[i]);
 	}
+
+	//Frustum
+	MeshData meshdata;
+	meshdata.addFrustum(this->camera.getFrustum());
+
+	//this->frustumVbuffer.createBuffer(meshdata);
+	//this->frustumIbuffer.createBuffer(meshdata);
+
+	Mesh frustumMesh(*this, std::move(meshdata));
+	//Mesh frustumMesh(*this, std::move(MeshData(DefaultMesh::QUAD)));
+	frustumMesh.setPosition(Vector3(0.0f, 0.0f, 0.0f));
+
+	this->renderMesh(frustumMesh);
 	
 }
 

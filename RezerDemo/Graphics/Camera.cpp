@@ -33,8 +33,6 @@ void Camera::updateCamera()
 	//update frustum
 	this->boundingFrustum.CreateFromMatrix(this->boundingFrustum, this->projectionMatrix);
 	this->boundingFrustum.Transform(this->boundingFrustum, invViewMatrix);
-	//this->boundingFrustum.Origin = this->position;
-
 	
 }
 

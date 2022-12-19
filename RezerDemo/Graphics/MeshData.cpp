@@ -12,6 +12,20 @@ MeshData::MeshData(DefaultMesh defaultMesh, std::string materialName)
 	this->createDefualtMesh(defaultMesh, materialName);
 }
 
+MeshData::MeshData(DirectX::XMFLOAT3* corners)
+{
+	//this->createFrustum(corners);
+
+	////Add submesh
+	//Submesh newSubMesh = {};
+	//newSubMesh.numIndices = (UINT)(this->indices.size());
+	//strcpy_s(newSubMesh.materialName, "defaultDiffuseTexture.png");
+	//this->submeshes.push_back(newSubMesh);
+
+	//this->radius = 0.5f;
+
+}
+
 MeshData::~MeshData()
 {
 }
@@ -155,6 +169,20 @@ void MeshData::addSubMesh(const Submesh& newSubmes)
 	this->submeshes.push_back(newSubmes);
 }
 
+void MeshData::addFrustum(DirectX::BoundingFrustum& frustum)
+{
+	this->createFrustum(frustum);
+
+	//Add submesh
+	Submesh newSubMesh = {};
+	newSubMesh.numIndices = (UINT)(this->indices.size());
+	strcpy_s(newSubMesh.materialName, "defaultDiffuseTexture.png");
+	this->submeshes.push_back(newSubMesh);
+
+	this->radius = 0.5f;
+	
+}
+
 void MeshData::setRadius(float radius)
 {
 	this->radius = radius;
@@ -179,18 +207,17 @@ void MeshData::createQuad()
 	this->vertices.push_back(this->makeVert(0.5f, 0.5f, 0.0f, 1.0f, 0.0f));		//Top Right		2
 	this->vertices.push_back(this->makeVert(0.5f, -0.5f, 0.0f, 1.0f, 1.0f));	//Bottom Right	3
 
-	for (int i = 0; i < 3; ++i)
-	{
-		//Triangle 1
-		this->indices.push_back(0);
-		this->indices.push_back(1);
-		this->indices.push_back(3);
+	
+	//Triangle 1
+	this->indices.push_back(0);
+	this->indices.push_back(1);
+	this->indices.push_back(3);
 
-		//trinagle 2
-		this->indices.push_back(1);
-		this->indices.push_back(2);
-		this->indices.push_back(3);
-	}
+	//trinagle 2
+	this->indices.push_back(1);
+	this->indices.push_back(2);
+	this->indices.push_back(3);
+	
 }
 
 void MeshData::createCube()
@@ -380,6 +407,74 @@ void MeshData::createPlane(int resX, int resY)
 		this->indices.push_back(squareY * resX + squareX + 1);
 		this->indices.push_back(squareY * resX + squareX + resX + 1);
 	}
+}
+
+void MeshData::createFrustum(DirectX::BoundingFrustum& frustum)
+{
+	DirectX::XMFLOAT3 corners[8];
+	frustum.GetCorners(corners);
+	
+	//Front
+	this->vertices.push_back(this->makeVert(corners[0].x, corners[0].y, corners[0].z, 0.0f, 0.0f)); //Top left
+	this->vertices.push_back(this->makeVert(corners[1].x, corners[1].y, corners[1].z, 1.0f, 0.0f)); //Top right
+	this->vertices.push_back(this->makeVert(corners[2].x, corners[2].y, corners[2].z, 1.0f, 1.0f)); //Bottom right
+	this->vertices.push_back(this->makeVert(corners[3].x, corners[3].y, corners[3].z, 0.0f, 1.0f)); //Bottom left
+
+	//Back
+	this->vertices.push_back(this->makeVert(corners[4].x, corners[4].y, corners[4].z, 0.0f, 1.0f)); //Top left
+	this->vertices.push_back(this->makeVert(corners[5].x, corners[5].y, corners[5].z, 1.0f, 0.0f)); //Top right
+	this->vertices.push_back(this->makeVert(corners[6].x, corners[6].y, corners[6].z, 1.0f, 1.0f)); //Bottom right
+	this->vertices.push_back(this->makeVert(corners[7].x, corners[7].y, corners[7].z, 0.0f, 1.0f)); //Bottom left
+	
+	//Indices
+	
+	//Back
+	this->indices.push_back(3);
+	this->indices.push_back(0);
+	this->indices.push_back(2);
+
+	this->indices.push_back(0);
+	this->indices.push_back(1);
+	this->indices.push_back(2);
+
+	//Left
+	this->indices.push_back(3);
+	this->indices.push_back(0);
+	this->indices.push_back(7);
+
+	this->indices.push_back(0);
+	this->indices.push_back(4);
+	this->indices.push_back(7);
+
+	//Right
+	this->indices.push_back(2);
+	this->indices.push_back(1);
+	this->indices.push_back(6);
+
+	this->indices.push_back(1);
+	this->indices.push_back(5);
+	this->indices.push_back(6);
+
+	//Top
+	this->indices.push_back(0);
+	this->indices.push_back(4);
+	this->indices.push_back(1);
+
+	this->indices.push_back(4);
+	this->indices.push_back(5);
+	this->indices.push_back(1);
+
+	//Bottom
+	this->indices.push_back(3);
+	this->indices.push_back(7);
+	this->indices.push_back(2);
+
+	this->indices.push_back(7);
+	this->indices.push_back(6);
+	this->indices.push_back(2);
+
+	
+
 }
 
 Vertex MeshData::makeVert(float posX, float posY, float posZ, float u, float v)

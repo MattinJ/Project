@@ -114,6 +114,10 @@ private:
 	ConstantBuffer cameraPos;
 	ID3D11Buffer* cameraBuff = nullptr;
 
+	//Frustum
+	//VertexBuffer frustumVbuffer;
+	//IndexBuffer frustumIbuffer;
+
 	//Tesserlering
 	Tessellering tesselering;
 

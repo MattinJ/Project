@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 #include <vector>
 #include <string>
+#include <DirectXCollision.h>
 
 enum class DefaultMesh
 {
@@ -43,12 +44,14 @@ private:
 	void createTetrahedron();
 	void createSphere(int resX = 10, int resY = 10);
 	void createPlane(int resX = 10, int resY = 10);
+	void createFrustum(DirectX::BoundingFrustum& frustum);
 
 	Vertex makeVert(float posX, float posY, float posZ, float u, float v);
 
 public:
 	MeshData();
 	MeshData(DefaultMesh defaultMesh, std::string materialName = "defaultDiffuseTexture.png");
+	MeshData(DirectX::XMFLOAT3* corners);
 	virtual ~MeshData();
 
 	bool createDefualtMesh(DefaultMesh mesh, std::string texture);
@@ -57,6 +60,8 @@ public:
 	void addVertex(const Vertex& newVertex);
 	void addIndex(const UINT& newIndice);
 	void addSubMesh(const Submesh& newSubmes);
+
+	void addFrustum(DirectX::BoundingFrustum& frustum);
 	
 	void setRadius(float radius);
 	

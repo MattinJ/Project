@@ -98,7 +98,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
     //Set ambient to defualt color.
     float4 ambientColor = ambient[DTid.xy];
     
-    for (uint i = 0; i < 4; i++)
+    for (uint i = 0; i < 2; i++)
     {
         if (buffer[i].lightType == 0) //Directional
         {

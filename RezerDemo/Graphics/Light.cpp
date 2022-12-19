@@ -43,9 +43,9 @@ bool Light::initLights()
 {
 	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, 6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
 	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(-6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
-	this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.0f));
-	this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(6.0f, 4.0f, 0.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, 0.0f));
+	//this->createLight(LightType::SPOT, DirectX::SimpleMath::Vector3(0.0f, 4.0f, -6.0f), DirectX::SimpleMath::Vector3(0.0f, -1.0f, -0.0f));
+	//this->createLight(LightType::DIRECTIONAL, DirectX::SimpleMath::Vector3(1.0f, 1.0f, 1.0f), DirectX::SimpleMath::Vector3(-1.0, -1.0f, -1.0f));
 	
 	return true;
 }
@@ -355,7 +355,7 @@ bool Light::update()
 {
 	for (int i = 0; i < NR_OF_LIGHT; i++)
 	{
-		if (this->lights[i].lightType == 1)
+		if (this->lights[i].lightType == 0 || this->lights[i].lightType == 1)
 		{
 			/*this->lights[0].position = camera.worldPosition();
 			this->lights[0].direction = camera.getTarget() - this->lights[0].position;*/
